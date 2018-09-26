@@ -1,3 +1,7 @@
-src/*.o
-bin
-bin/*
+./src/*.o
+./bin
+./bin/*
+./libr
+./vscode
+./vscode/*
+./vscode/**/**
