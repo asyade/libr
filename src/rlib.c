@@ -12,6 +12,14 @@ void ft_memswap(unsigned char *src, unsigned char *dest, size_t n)
         dest[n] = c;
     }
 }
+
+void ft_memset(unsigned char *dest, unsigned char c, size_t n)
+{
+    while (n--)
+    {
+        dest[n] = c;
+    }
+}
 void *ft_memcpy(void *dest, const void *src, size_t n)
 {
     return memcpy(dest, src, n);
