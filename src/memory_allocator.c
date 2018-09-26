@@ -181,3 +181,17 @@ void *memalloc_alloc(t_memalloc *allocator, size_t size)
     else
         return (fill_entry_begin(allocator, entry, size));
 }
+
+int memalloc_free(t_memalloc *allocator, void *addr)
+{
+    size_t index;
+    t_mementry entry;
+
+    if ((index = bheap_find(allocator->usedEntries, &(t_mementry){0, addr}, 0)) == BH_NOTFOUND)
+        return (1);
+    entry = *((t_mementry *)(allocator->usedEntries + 1) + index);
+    bheap_remove(allocator->usedEntries, index);
+    bheap_insert(allocator->emptyEntries, &entry);
+    fill_mem_magic(allocator, (size_t)entry.addr - (size_t)(allocator + 1), entry.size, FREE);
+    return (0);
+}
