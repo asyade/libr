@@ -1,5 +1,8 @@
 #include "libr.h"
 #include <stdlib.h>
+
+#define COUNT 100
+
 int cmpf(void *pa, void *pb)
 {
 
@@ -30,7 +33,6 @@ void print_heap(t_bheap *heap)
     printf("\n");
 }
 
-#define COUNT 100
 int main(int ac, char **av)
 {
     size_t buffer_size = (COUNT * sizeof(int) + sizeof(t_bheap));
@@ -53,7 +55,6 @@ int main(int ac, char **av)
     {
         bheap_insert(heap, &vals[i]);
     }
-
     for (int i = 0; i < COUNT; i++)
     {
         size_t val = bheap_find(heap, (void *)&i, 0);
@@ -63,7 +64,6 @@ int main(int ac, char **av)
             return (1);
         }
     }
-
     for (int i = COUNT; i >= 0; i--)
     {
         bheap_remove(heap, i);

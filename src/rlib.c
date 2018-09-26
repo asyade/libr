@@ -1,6 +1,17 @@
 #include "libr.h"
 
-void ft_shift_array(unsigned char *array, size_t size, size_t elem_size, int (*rnd)());
+void ft_shift_array(unsigned char *array, size_t size, size_t elem_size, int (*rnd)())
+{
+    size_t i;
+
+    i = 0;
+    while (i < size)
+    {
+        ft_memswap(array + (size * elem_size), array + (((rnd)() % (size - 1)) * elem_size), elem_size);
+        i++;
+    }
+}
+
 void ft_memswap(unsigned char *src, unsigned char *dest, size_t n)
 {
     unsigned char c;
@@ -20,7 +31,17 @@ void ft_memset(unsigned char *dest, unsigned char c, size_t n)
         dest[n] = c;
     }
 }
+
 void *ft_memcpy(void *dest, const void *src, size_t n)
 {
-    return memcpy(dest, src, n);
+    unsigned char *destptr;
+    unsigned char *srcptr;
+
+    destptr = (unsigned char *)dest;
+    srcptr = (unsigned char *)src;
+    while (n--)
+    {
+        destptr[n] = srcptr[n];
+    }
+    return (dest);
 }
