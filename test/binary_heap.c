@@ -2,30 +2,13 @@
 #include <stdlib.h>
 int cmpf(void *pa, void *pb)
 {
-    int diff;
 
-    diff = *(int *)pa - *(int *)pb;
-    if (diff == 0)
+    int a = *(int *)pa;
+    int b = *(int *)pb;
+    if (a == b)
         return (0);
     else
-        return (diff) > 0 ? 1 : -1;
-}
-
-int check_heap_at(t_bheap *heap, size_t index, size_t new_index)
-{
-    if (new_index >= heap->size || index >= heap->size)
-        return (1);
-    if (cmpf(bh_index(heap, index), bh_index(heap, new_index)) > 0)
-        return (0);
-    return (check_heap(heap, new_index));
-}
-int check_heap(t_bheap *heap, int index)
-{
-    if (!check_heap_at(heap, index, BH_LEFT(index)))
-        return (0);
-    if (!check_heap_at(heap, index, BH_RIGHT(index)))
-        return (0);
-    return (1);
+        return (a > b) ? 1 : -1;
 }
 
 void print_heap(t_bheap *heap)
@@ -47,32 +30,57 @@ void print_heap(t_bheap *heap)
     printf("\n");
 }
 
-#define COUNT 1024
+#define COUNT 100
 int main(int ac, char **av)
 {
+    size_t buffer_size = (COUNT * sizeof(int) + sizeof(t_bheap));
     srand((ac > 1) ? atoi(av[1]) : 42);
-    //t_bheap *heap = bheap_new(sizeof(int), COUNT, cmpf);
+    t_bheap *heap = bheap_new(mchunk_alloc(buffer_size) + 1, buffer_size, sizeof(int), cmpf);
+
     int vals[COUNT];
     for (int i = 0; i < COUNT; i++)
     {
         vals[i] = i;
     }
-    //for (int i = 0; i < COUNT; i++)
-    //{
-    //    int npos = rand() % COUNT;
-    //    int tmp = vals[npos];
-    //    vals[npos] = vals[i];
-    //    vals[i] = tmp;
-    //}
-    ft_shift_array((unsigned char *)vals, COUNT, sizeof(*vals), rand);
     for (int i = 0; i < COUNT; i++)
     {
-        printf("%d, ", vals[i]);
-        //bheap_insert(heap, &vals[i]);
-        // if (!check_heap(heap, 0))
-        // {
-        // printf("Error\n");
-        // return (1);
-        // }
+        int npos = rand() % COUNT;
+        int tmp = vals[npos];
+        vals[npos] = vals[i];
+        vals[i] = tmp;
     }
+    for (int i = 0; i < COUNT; i++)
+    {
+        bheap_insert(heap, &vals[i]);
+    }
+
+    for (int i = 0; i < COUNT; i++)
+    {
+        size_t val = bheap_find(heap, (void *)&i, 0);
+        if (val == BH_NOTFOUND)
+        {
+            printf("Error in find, value %d not found", i);
+            return (1);
+        }
+    }
+
+    for (int i = COUNT; i >= 0; i--)
+    {
+        bheap_remove(heap, i);
+    }
+
+    for (int i = 0; i < COUNT; i++)
+    {
+        bheap_insert(heap, &vals[i]);
+    }
+    for (int i = 0; i < COUNT; i++)
+    {
+        bheap_remove(heap, rand() % heap->size);
+    }
+    if (heap->size != 0)
+    {
+        printf("Error heap is not empty !");
+        return (1);
+    }
+    return (0);
 }
