@@ -73,10 +73,12 @@ int mchunk_free(t_memchunk *chunk);
  * Optimised memory allocator for random size allocation
 */
 #define MAX_ALLOC_SIZE 1024 * 1024 * 5
+#define MIN_ALLOC_SIZE 2
 #define ALIGN 8
 #define SIZE_ALIGN(size) ((((size) / ALIGN) + ((size) % ALIGN ? 1 : 0)) * ALIGN)
 #define SIZE_ALLOC(size) (SIZE_ALIGN((size + sizeof(t_alloc))))
 
+#define ENT_OFF(allocator, entry) (((size_t)(entry)-ALLOC_SPTR(allocator)))
 #define ALLOC_VPTR(allocator) (((void *)((allocator) + 1)))
 #define ALLOC_SPTR(allocator) (((size_t)((allocator) + 1)))
 
