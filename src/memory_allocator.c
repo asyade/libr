@@ -101,7 +101,7 @@ int check_mem_magic(t_memalloc *allocator, size_t offset, size_t size, int recur
     if (size + offset > allocator->buffer_size || offset > MAX_ALLOC_SIZE * 128 || size > MAX_ALLOC_SIZE)
         return (-1);
     magics[0] = *(t_memmagic *)(ALLOC_SPTR(allocator) + offset);
-    magics[1] = *(t_memmagic *)(ALLOC_SPTR(allocator) + (size - sizeof(t_memmagic)));
+    magics[1] = *(t_memmagic *)(ALLOC_SPTR(allocator) + offset + (size - sizeof(t_memmagic)));
     if (ft_memcmp(magics, magics + 1, sizeof(t_memmagic)) != 0 || magics[0].size != size || !(magics[0].status & (USED | FREE)))
     {
         printf("Magics do not match at %lu %lu (recursive : %s)\n", offset, size, recursive ? "true" : "false");
@@ -111,21 +111,20 @@ int check_mem_magic(t_memalloc *allocator, size_t offset, size_t size, int recur
         return (0);
     if (offset > 0)
     {
-        magics[0] = *(t_memmagic *)(ALLOC_SPTR(allocator) - sizeof(t_memmagic));
+        magics[0] = *(t_memmagic *)(ALLOC_SPTR(allocator) + (offset - sizeof(t_memmagic)));
         if (check_mem_magic(allocator, offset - magics[0].size, magics[0].size, 0) != 0)
             return (-3);
     }
     if (offset + size < allocator->buffer_size)
     {
-        printf("%lu + %lu = %lu == %lu", offset, size, offset + size, allocator->buffer_size);
-        magics[0] = *(t_memmagic *)(ALLOC_SPTR(allocator) + offset + (size - sizeof(t_memmagic)));
+        magics[0] = *(t_memmagic *)(ALLOC_SPTR(allocator) + offset + size);
         if (check_mem_magic(allocator, offset + size, magics[0].size, 0) != 0)
             return (-3);
     }
     return (0);
 }
 
-int unsafe_fill_mem_magic(t_memalloc *allocator, size_t offset, size_t size, t_alloc_stat status)
+int fill_mem_magic(t_memalloc *allocator, size_t offset, size_t size, t_alloc_stat status, int check_recursive)
 {
     if (allocator->buffer_size < offset + size)
     {
@@ -135,20 +134,7 @@ int unsafe_fill_mem_magic(t_memalloc *allocator, size_t offset, size_t size, t_a
 
     *(t_memmagic *)(ALLOC_SPTR(allocator) + offset) = (t_memmagic){status, size};
     *(t_memmagic *)((ALLOC_SPTR(allocator) + offset + size) - sizeof(t_memmagic)) = (t_memmagic){status, size};
-    return (0);
-}
-
-int fill_mem_magic(t_memalloc *allocator, size_t offset, size_t size, t_alloc_stat status)
-{
-    if (allocator->buffer_size < offset + size)
-    {
-        printf("Invalide memory arena %lu - %lu for buffer size of %lu\n", offset, offset + size, allocator->buffer_size);
-        return (1);
-    }
-
-    *(t_memmagic *)(ALLOC_SPTR(allocator) + offset) = (t_memmagic){status, size};
-    *(t_memmagic *)((ALLOC_SPTR(allocator) + offset + size) - sizeof(t_memmagic)) = (t_memmagic){status, size};
-    return (check_mem_magic(allocator, offset, size, 1));
+    return (check_mem_magic(allocator, offset, size, check_recursive));
 }
 
 t_memalloc *memalloc_new(size_t buffer_size, size_t emptyHeapSize, size_t usedHeapSize)
@@ -175,7 +161,7 @@ t_memalloc *memalloc_new(size_t buffer_size, size_t emptyHeapSize, size_t usedHe
     alloc->usedEntries = bheap_new(chunk + 1, chunk->size, sizeof(t_mementry), entries_cmp);
 
     bheap_insert(alloc->emptyEntries, &(t_mementry){alloc->buffer_size, alloc + 1});
-    fill_mem_magic(alloc, 0, alloc->buffer_size, FREE);
+    fill_mem_magic(alloc, 0, alloc->buffer_size, FREE, 1);
     return (alloc);
 }
 
@@ -225,7 +211,7 @@ int join_empty_entries(t_memalloc *allocator, size_t final, size_t drained)
     printf("-- AFTER DRAIN --\n");
     print_heap(allocator->emptyEntries);
     final_entry->size += drained_entry.size;
-    return (fill_mem_magic(allocator, (size_t)final_entry->addr - ALLOC_SPTR(allocator), final_entry->size, FREE));
+    return (fill_mem_magic(allocator, (size_t)final_entry->addr - ALLOC_SPTR(allocator), final_entry->size, FREE, 1));
 }
 
 int try_join_empty_entry_right(t_memalloc *allocator, size_t index)
@@ -296,13 +282,12 @@ void *fill_entry_begin(t_memalloc *allocator, t_mementry entry, size_t size)
     {
         if ((new_index = bheap_insert(allocator->emptyEntries, &(t_mementry){entry.size - size, (void *)((size_t)entry.addr + size)})) == BH_NOTFOUND)
             return (NULL);
-        if (unsafe_fill_mem_magic(allocator, ((size_t)entry.addr - ALLOC_SPTR(allocator)) + size, entry.size - size, FREE) != 0)
+        if (fill_mem_magic(allocator, ((size_t)entry.addr - ALLOC_SPTR(allocator)) + size, entry.size - size, FREE, 0) != 0)
             return (NULL);
-        //   try_join_empty_entry_right(allocator, new_index);
     }
     if ((bheap_insert(allocator->usedEntries, &(t_mementry){size, entry.addr})) == BH_NOTFOUND)
         return (NULL);
-    if (fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), size, USED) != 0)
+    if (fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), size, USED, 0) != 0)
         return (NULL);
     return (entry.addr);
 }
@@ -310,15 +295,17 @@ void *fill_entry_begin(t_memalloc *allocator, t_mementry entry, size_t size)
 void *fill_entry_middel(t_memalloc *allocator, t_mementry entry, size_t size)
 {
     size_t offset;
+    size_t new_size;
     size_t new_index;
 
     offset = (entry.size / 2) - (size / 2);
-    if ((new_index = bheap_insert(allocator->emptyEntries, &(t_mementry){entry.size - (entry.size - offset), entry.addr})) == BH_NOTFOUND)
+    new_size = entry.size - (entry.size - offset);
+    if ((new_index = bheap_insert(allocator->emptyEntries, &(t_mementry){new_size, entry.addr})) == BH_NOTFOUND)
         return (NULL);
-    if (unsafe_fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), entry.size - (entry.size - offset), FREE) != 0)
+    if (fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), new_size, FREE, 0) != 0)
         return (NULL);
     //  try_join_empty_entry_left(allocator, new_index);
-    return fill_entry_begin(allocator, (t_mementry){entry.size - offset, (void *)((size_t)entry.addr + offset)}, size);
+    return fill_entry_begin(allocator, (t_mementry){entry.size - new_size, (void *)((size_t)entry.addr + new_size)}, size);
 }
 
 void memalloc_panic(const char *message)
@@ -385,7 +372,7 @@ int memalloc_free(t_memalloc *allocator, void *addr)
         memalloc_panic("@@@@@ ----- MEMORY ARENA CORUPTED !!!\nCan't allocate new entry\n");
         return (-3);
     }
-    if (fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), entry.size, FREE) != 0)
+    if (fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), entry.size, FREE, 1) != 0)
     {
         memalloc_panic("@@@@@ ----- MEMORY ARENA CORUPTED !!!\nCan't fill magic\n");
 
