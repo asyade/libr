@@ -82,5 +82,6 @@ int main(int ac, char **av)
         printf("Error heap is not empty !");
         return (1);
     }
+    memalloc_destroy(allocator);
     return (0);
 }

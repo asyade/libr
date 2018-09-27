@@ -68,7 +68,7 @@ size_t bheap_heapify(t_bheap *heap, size_t index)
 size_t bheap_insert(t_bheap *heap, void *elem)
 {
 	if (heap->capacity <= heap->size)
-		return (-1);
+		return (BH_NOTFOUND);
 	ft_memcpy((unsigned char *)BH_INDEX(heap, heap->size), elem, heap->elem_size);
 	return (bheap_travers_up(heap, heap->size++));
 }

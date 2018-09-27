@@ -1,10 +1,14 @@
 #include "libr.h"
 
-void ft_shift_array(unsigned char *array, size_t size, size_t elem_size, int (*rnd)())
+void ft_shift_array(void *src, size_t size, size_t elem_size, long int (*rnd)())
 {
     size_t i;
+    unsigned char *array;
 
+    array = (unsigned char *)src;
     i = 0;
+    if (size <= 1 || elem_size <= 1)
+        return;
     while (i < size)
     {
         ft_memswap(array + (size * elem_size), array + (((rnd)() % (size - 1)) * elem_size), elem_size);
