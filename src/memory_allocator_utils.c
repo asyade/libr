@@ -124,3 +124,32 @@ int check_mem_magic(t_memalloc *allocator, size_t offset, size_t size, int recur
     }
     return (0);
 }
+
+size_t find_empty_entry(t_bheap *heap, size_t size)
+{
+    size_t i;
+    size_t choice;
+    t_mementry *entries;
+
+    choice = BH_NOTFOUND;
+    entries = (t_mementry *)(heap + 1);
+    i = 0;
+    while (i < heap->size)
+    {
+        if (entries[i].size >= size * 3)
+        {
+            choice = i;
+            break;
+        }
+        else if (entries[i].size >= size)
+            choice = i;
+        i++;
+    }
+    return (choice);
+}
+
+void memalloc_panic(const char *message)
+{
+    printf("@@@@@@@@@@  MEMORY ARENA CORUPTED @@@@@@@@@@%s", message);
+    exit(1);
+}

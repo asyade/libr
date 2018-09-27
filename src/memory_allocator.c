@@ -13,29 +13,6 @@ int fill_mem_magic(t_memalloc *allocator, size_t offset, size_t size, t_alloc_st
     return (check_mem_magic(allocator, offset, size, check_recursive));
 }
 
-size_t find_empty_entry(t_bheap *heap, size_t size)
-{
-    size_t i;
-    size_t choice;
-    t_mementry *entries;
-
-    choice = BH_NOTFOUND;
-    entries = (t_mementry *)(heap + 1);
-    i = 0;
-    while (i < heap->size)
-    {
-        if (entries[i].size >= size * 3)
-        {
-            choice = i;
-            break;
-        }
-        else if (entries[i].size >= size)
-            choice = i;
-        i++;
-    }
-    return (choice);
-}
-
 int join_empty_entries(t_memalloc *allocator, size_t final, size_t drained)
 {
     t_mementry drained_entry;
@@ -124,12 +101,6 @@ void *fill_entry_middel(t_memalloc *allocator, t_mementry entry, size_t size)
         fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), new_size, FREE, 0) != 0)
         return (NULL);
     return fill_entry_begin(allocator, (t_mementry){entry.size - new_size, (void *)((size_t)entry.addr + new_size)}, size);
-}
-
-void memalloc_panic(const char *message)
-{
-    printf("@@@@@@@@@@  MEMORY ARENA CORUPTED @@@@@@@@@@%s", message);
-    exit(1);
 }
 
 void *memalloc_alloc(t_memalloc *allocator, size_t size)

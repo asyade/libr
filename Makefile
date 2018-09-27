@@ -1,10 +1,10 @@
 #!AUTO GENERATED!
-SRC=./src/binary_heap.c ./src/rlib.c ./src/memory_chunk.c ./src/memory_allocator.c
+SRC=./src/binary_heap.c ./src/rlib.c ./src/memory_chunk.c ./src/memory_allocator.c ./src/memory_allocator_ctor.c ./src/memory_allocator_utils.c
 CC=gcc
 NAME=libr
 OBJ=$(SRC:.c=.o)
 INCLUDES=-I ./include 
-FLAGS=-Wall -Werror -Wextra -g3
+FLAGS= -Wno-unused-result -Wall -Werror -Wextra -g3
 
 TEST_BHEAP=test/binary_heap.c
 TES_BHEAP_BIN=bin/test_bheap
