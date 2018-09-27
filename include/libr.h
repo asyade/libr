@@ -111,6 +111,8 @@ typedef struct s_memalloc
 } t_memalloc;
 /// IMportant todo replace all bheap_insert by bheap insert or expande
 /// Important imporovement can be find element by it's size instead of address in heap
+int check_mem_magic(t_memalloc *allocator, size_t offset, size_t size, int recursive);
+int fill_mem_magic(t_memalloc *allocator, size_t offset, size_t size, t_alloc_stat status, int check_recursive);
 t_memalloc *memalloc_new(size_t buffer_size, size_t emptyHeapSize, size_t usedHeapSize);
 void memalloc_destroy(t_memalloc *allocator);
 void *memalloc_alloc(t_memalloc *allocator, size_t size);

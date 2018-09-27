@@ -28,13 +28,13 @@ t_sized_ptr *allocate_random_sizes(t_memalloc *allocator, size_t count, size_t m
 int main(int ac, char **av)
 {
     srand(ac > 1 ? atoi(av[1]) : 1);
-    t_memalloc *allocator = memalloc_new(1024 * 1024, 4096, 4096);
+    t_memalloc *allocator = memalloc_new(128, 1024 * 1024, 1024 * 1024);
 
     memalloc_dump(allocator);
     memalloc_dump(allocator);
 
-    size_t max_ptr = 4096 * 3;
-    size_t nbr_ops = 4096 * 3;
+    size_t max_ptr = 3;
+    size_t nbr_ops = 4096 * 128;
 
     t_sized_ptr *ptrs = malloc(max_ptr * sizeof(t_sized_ptr));
 
