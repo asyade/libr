@@ -44,7 +44,7 @@ size_t bheap_travers_down(t_bheap *heap, size_t index)
 	left = BH_INDEX(heap, BH_LEFT(index));
 	right = BH_INDEX(heap, BH_RIGHT(index));
 	if (BH_LEFT(index) < heap->size && BH_RIGHT(index) < heap->size)
-		smalset = ((heap->cmpf)(left, right) <= 0) ? left : right;
+		smalset = ((heap->cmpf)(left, right) < 0) ? left : right;
 	else if (BH_LEFT(index) < heap->size)
 		smalset = left;
 	else
@@ -76,7 +76,7 @@ size_t bheap_insert(t_bheap *heap, void *elem)
 int bheap_remove(t_bheap *heap, size_t index)
 {
 	if (index >= heap->size)
-		return (0);
+		return (-1);
 	if (index == --heap->size)
 		return (0);
 	ft_memcpy(BH_INDEX(heap, index), BH_INDEX(heap, heap->size), heap->elem_size);
@@ -93,11 +93,12 @@ size_t bheap_find(t_bheap *heap, void *value, size_t index)
 		return (index);
 	if (diff > 0)
 		return (BH_NOTFOUND);
-	if (BH_LEFT(index) < heap->size &&
-		(ret = bheap_find(heap, value, BH_LEFT(index))) != BH_NOTFOUND)
-		return (ret);
 	if (BH_RIGHT(index) < heap->size &&
 		(ret = bheap_find(heap, value, BH_RIGHT(index))) != BH_NOTFOUND)
 		return (ret);
+	if (BH_LEFT(index) < heap->size &&
+		(ret = bheap_find(heap, value, BH_LEFT(index))) != BH_NOTFOUND)
+		return (ret);
+
 	return (BH_NOTFOUND);
 }

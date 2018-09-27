@@ -45,3 +45,18 @@ void *ft_memcpy(void *dest, const void *src, size_t n)
     }
     return (dest);
 }
+
+int ft_memcmp(void *a, void *b, size_t n)
+{
+    unsigned char *pa;
+    unsigned char *pb;
+
+    pa = (unsigned char *)a;
+    pb = (unsigned char *)b;
+    while (n--)
+    {
+        if (pa[n] != pb[n])
+            return (1);
+    }
+    return (0);
+}
