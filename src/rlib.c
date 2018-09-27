@@ -11,7 +11,7 @@ void ft_shift_array(void *src, size_t size, size_t elem_size, long int (*rnd)())
         return;
     while (i < size)
     {
-        ft_memswap(array + (size * elem_size), array + (((rnd)() % (size - 1)) * elem_size), elem_size);
+        ft_memswap(array + (i * elem_size), array + (((rnd)() % (size - 1)) * elem_size), elem_size);
         i++;
     }
 }
@@ -20,6 +20,8 @@ void ft_memswap(unsigned char *src, unsigned char *dest, size_t n)
 {
     unsigned char c;
 
+    if (src == dest)
+        return;
     while (n--)
     {
         c = src[n];

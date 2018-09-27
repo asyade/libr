@@ -39,7 +39,7 @@ int try_join_empty_entry_right(t_memalloc *allocator, size_t index)
     //TODO check overflow for addr
     magicptr = (t_memmagic *)((size_t)entry->addr + entry->size);
     if ((size_t)magicptr + sizeof(t_memmagic) > (size_t)allocator + sizeof(t_memalloc) + allocator->buffer_size)
-        return (-3);
+        return (0);
     if (check_mem_magic(allocator, ((size_t)entry->addr + entry->size) - ALLOC_SPTR(allocator), magicptr->size, 1) != 0)
         return (-2);
     if (magicptr->status == USED)
@@ -125,9 +125,9 @@ void *memalloc_alloc(t_memalloc *allocator, size_t size)
         ret = (fill_entry_begin(allocator, entry, size));
     if (ret == NULL)
     {
-        memalloc_dump(allocator);
         memalloc_panic("\nCan't allocate specified zone\n");
     }
+    printf("%p %p\n", ret, (t_memmagic *)ret + 1);
     return ((t_memmagic *)ret + 1);
 }
 

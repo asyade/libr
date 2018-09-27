@@ -28,13 +28,13 @@ t_sized_ptr *allocate_random_sizes(t_memalloc *allocator, size_t count, size_t m
 int main(int ac, char **av)
 {
     srand(ac > 1 ? atoi(av[1]) : 1);
-    t_memalloc *allocator = memalloc_new(128, 1024 * 1024, 1024 * 1024);
+    t_memalloc *allocator = memalloc_new(1024 * 1024, 1024 * 1024, 1024 * 1024);
 
     memalloc_dump(allocator);
     memalloc_dump(allocator);
 
-    size_t max_ptr = 3;
-    size_t nbr_ops = 4096 * 128;
+    size_t max_ptr = 1024 * 128;
+    size_t nbr_ops = 1024 * 1024;
 
     t_sized_ptr *ptrs = malloc(max_ptr * sizeof(t_sized_ptr));
 
@@ -47,27 +47,45 @@ int main(int ac, char **av)
             if (nbr_ptr >= max_ptr)
                 break;
             ptrs[nbr_ptr].size = random_range(128, 1024);
-            ptrs[nbr_ptr].ptr = memalloc_alloc(allocator, ptrs[nbr_ptr - 1].size);
+            ptrs[nbr_ptr].ptr = memalloc_alloc(allocator, ptrs[nbr_ptr].size);
+            if (ptrs[nbr_ptr].ptr)
+                ft_memset(ptrs[nbr_ptr].ptr, 42, ptrs[nbr_ptr].size);
+
             printf(CL_RED "ALLOC_MED(%lu)=%p\n" CL_RESET, ptrs[nbr_ptr].size, ptrs[nbr_ptr].ptr);
             nbr_ptr++;
             break;
         case 2:
             if (nbr_ptr > 0)
             {
+                ft_shift_array(ptrs, nbr_ptr, sizeof(t_sized_ptr), random);
                 nbr_ptr--;
-                ft_shift_array(ptrs, nbr_ptr, sizeof(t_memmagic), random);
-                memalloc_free(allocator, ptrs[nbr_ptr].ptr);
+                if (memalloc_free(allocator, ptrs[nbr_ptr].ptr) != 0)
+                {
+                    printf(CL_CYAN "EMPTY ENTRIES\n" CL_RESET);
+                    print_heap(allocator->emptyEntries);
+                    printf(CL_RED "USED ENTRIES\n" CL_RESET);
+                    print_heap(allocator->usedEntries);
+                    for (size_t i = 0; i <= nbr_ptr; i++)
+                    {
+                        printf("ptr %p of size%lu\n", ptrs[i].ptr, ptrs[i].size);
+                    }
+                    printf("Invalide FREED %4.4lx!\n", ((size_t)ptrs[nbr_ptr].ptr - sizeof(t_memmagic)));
+                    exit(1);
+                }
                 printf(CL_RED "FREE(%p)\n" CL_RESET, ptrs[nbr_ptr].ptr);
             }
             break;
         case 3:
         {
             size_t to = random_range(4, 20);
-            size_t sz = random_range(1, 4) * 16;
+            size_t sz = (random_range(1, 4) + 1) * 16;
             for (size_t i = 0; i < to && nbr_ptr < max_ptr; i++)
             {
                 ptrs[nbr_ptr].size = sz;
-                ptrs[nbr_ptr].ptr = memalloc_alloc(allocator, ptrs[nbr_ptr - 1].size);
+                ptrs[nbr_ptr].ptr = memalloc_alloc(allocator, ptrs[nbr_ptr].size);
+                if (ptrs[nbr_ptr].ptr)
+                    ft_memset(ptrs[nbr_ptr].ptr, 42, ptrs[nbr_ptr].size);
+
                 printf(CL_RED "ALLOC_RANG(%lu)=%p\n" CL_RESET, ptrs[nbr_ptr].size, ptrs[nbr_ptr].ptr);
                 nbr_ptr++;
             }
@@ -77,11 +95,21 @@ int main(int ac, char **av)
         case 4:
         {
             size_t to = random_range(2, 20);
-            ft_shift_array(ptrs, nbr_ptr, sizeof(t_memmagic), random);
+            ft_shift_array(ptrs, nbr_ptr, sizeof(t_sized_ptr), random);
             for (size_t i = 0; i < to && nbr_ptr > 0; i++)
             {
                 nbr_ptr--;
-                memalloc_free(allocator, ptrs[nbr_ptr].ptr);
+
+                if (memalloc_free(allocator, ptrs[nbr_ptr].ptr) != 0)
+                {
+                    printf(CL_RED "Invalide freed range %p\n" CL_RESET, ptrs[nbr_ptr].ptr);
+                    for (size_t i = 0; i <= nbr_ptr; i++)
+                    {
+                        printf("ptr %p of size%lu\n", ptrs[i].ptr, ptrs[i].size);
+                    }
+
+                    return (1);
+                }
                 printf(CL_RED "FREE_RANGE(%p)\n" CL_RESET, ptrs[nbr_ptr].ptr);
             }
         }
@@ -92,7 +120,9 @@ int main(int ac, char **av)
             for (size_t i = 0; i < to && nbr_ptr < max_ptr; i++)
             {
                 ptrs[nbr_ptr].size = random_range(12, 128);
-                ptrs[nbr_ptr].ptr = memalloc_alloc(allocator, ptrs[nbr_ptr - 1].size);
+                ptrs[nbr_ptr].ptr = memalloc_alloc(allocator, ptrs[nbr_ptr].size);
+                if (ptrs[nbr_ptr].ptr)
+                    ft_memset(ptrs[nbr_ptr].ptr, 42, ptrs[nbr_ptr].size);
                 printf(CL_RED "ALLOC_RND_RANG(%lu)=%p\n" CL_RESET, ptrs[nbr_ptr].size, ptrs[nbr_ptr].ptr);
                 nbr_ptr++;
             }

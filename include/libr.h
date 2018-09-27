@@ -120,5 +120,5 @@ void memalloc_destroy(t_memalloc *allocator);
 void *memalloc_alloc(t_memalloc *allocator, size_t size);
 void memalloc_dump(t_memalloc *allocator);
 int memalloc_free(t_memalloc *allocator, void *addr);
-
+void print_heap(t_bheap *heap);
 #endif
