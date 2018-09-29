@@ -85,13 +85,27 @@ void *fill_entry_begin(t_memalloc *allocator, t_mementry entry, size_t size)
         size = entry.size;
     if (entry.size > size)
     {
-        if ((new_index = bheap_insert(allocator->emptyEntries, &(t_mementry){entry.size - size, (void *)((size_t)entry.addr + size)})) == BH_NOTFOUND ||
-            fill_mem_magic(allocator, ((size_t)entry.addr - ALLOC_SPTR(allocator)) + size, entry.size - size, FREE, 0) != 0)
+        if ((new_index = bheap_insert(allocator->emptyEntries, &(t_mementry){entry.size - size, (void *)((size_t)entry.addr + size)})) == BH_NOTFOUND)
+        {
+            memalloc_seterr(E_INS_EMPTY);
             return (NULL);
+        }
+        if (fill_mem_magic(allocator, ((size_t)entry.addr - ALLOC_SPTR(allocator)) + size, entry.size - size, FREE, 0) != 0)
+        {
+            memalloc_seterr(E_MAGIC);
+            return (NULL);
+        }
     }
-    if ((bheap_insert(allocator->usedEntries, &(t_mementry){size, entry.addr})) == BH_NOTFOUND ||
-        fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), size, USED, 0) != 0)
+    if ((bheap_insert(allocator->usedEntries, &(t_mementry){size, entry.addr})) == BH_NOTFOUND)
+    {
+        memalloc_seterr(E_INS_USED);
         return (NULL);
+    }
+    if (fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), size, USED, 0) != 0)
+    {
+        memalloc_seterr(E_MAGIC);
+        return (NULL);
+    }
     return (entry.addr);
 }
 
@@ -108,9 +122,16 @@ void *fill_entry_middel(t_memalloc *allocator, t_mementry entry, size_t size)
         offset++;
         new_size = entry.size - (entry.size - offset);
     }
-    if ((new_index = bheap_insert(allocator->emptyEntries, &(t_mementry){new_size, entry.addr})) == BH_NOTFOUND ||
-        fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), new_size, FREE, 0) != 0)
+    if ((new_index = bheap_insert(allocator->emptyEntries, &(t_mementry){new_size, entry.addr})) == BH_NOTFOUND)
+    {
+        memalloc_seterr(E_INS_EMPTY);
         return (NULL);
+    }
+    if (fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), new_size, FREE, 0) != 0)
+    {
+        memalloc_seterr(E_MAGIC);
+        return (NULL);
+    }
     return fill_entry_begin(allocator, (t_mementry){entry.size - new_size, (void *)((size_t)entry.addr + new_size)}, size);
 }
 
@@ -127,18 +148,14 @@ void *memalloc_alloc(t_memalloc *allocator, size_t size)
     entry = ((t_mementry *)((allocator->emptyEntries) + 1))[index];
     if (bheap_remove(allocator->emptyEntries, index) != 0)
     {
-        memalloc_panic("\nCan't remove element from emptyHeap\n");
+        memalloc_seterr(E_DEL_HEAP);
         return (NULL);
     }
     if (entry.size >= size * 3)
         ret = (fill_entry_middel(allocator, entry, size));
     else
         ret = (fill_entry_begin(allocator, entry, size));
-    if (ret == NULL)
-    {
-        memalloc_panic("\nCan't allocate specified zone\n");
-    }
-    return ((t_memmagic *)ret + 1);
+    return (ret ? (t_memmagic *)ret + 1 : NULL);
 }
 
 int try_join_empty_entries(t_memalloc *allocator, size_t index, void *addr)

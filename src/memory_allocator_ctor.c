@@ -19,19 +19,13 @@ t_memalloc *memalloc_new(size_t buffer_size, size_t emptyHeapSize, size_t usedHe
         return (NULL);
     alloc = (t_memalloc *)(chunk + 1);
     alloc->buffer_size = chunk->size - sizeof(t_memalloc);
-    if ((chunk = mchunk_alloc(emptyHeapSize)) == NULL)
+    if ((chunk = mchunk_alloc(emptyHeapSize + usedHeapSize)) == NULL)
     {
         mchunk_free((t_memchunk *)(alloc - 1) - 1);
         return (NULL);
     }
-    alloc->emptyEntries = bheap_new(chunk + 1, chunk->size, sizeof(t_mementry), entries_cmp);
-    if ((chunk = mchunk_alloc(usedHeapSize)) == NULL)
-    {
-        mchunk_free((t_memchunk *)(alloc - 1) - 1);
-        mchunk_free((t_memchunk *)(alloc->emptyEntries - 1) - 1);
-        return (NULL);
-    }
-    alloc->usedEntries = bheap_new(chunk + 1, chunk->size, sizeof(t_mementry), entries_cmp);
+    alloc->emptyEntries = bheap_new(chunk + 1, emptyHeapSize, sizeof(t_mementry), entries_cmp);
+    alloc->usedEntries = bheap_new((void *)((size_t)alloc->emptyEntries + emptyHeapSize), usedHeapSize, sizeof(t_mementry), entries_cmp);
 
     bheap_insert(alloc->emptyEntries, &(t_mementry){alloc->buffer_size, alloc + 1});
     fill_mem_magic(alloc, 0, alloc->buffer_size, FREE, 1);

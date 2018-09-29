@@ -163,9 +163,3 @@ size_t find_empty_entry(t_bheap *heap, size_t size)
     }
     return (choice);
 }
-
-void memalloc_panic(const char *message)
-{
-    printf("@@@@@@@@@@  MEMORY ARENA CORUPTED @@@@@@@@@@%s", message);
-    exit(1);
-}
