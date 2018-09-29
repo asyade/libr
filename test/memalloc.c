@@ -18,19 +18,15 @@ t_sized_ptr *allocate_random_sizes(t_memalloc *allocator, size_t count, size_t m
     while (count--)
     {
         retval[count].size = (size_t)random_range((int)min, (int)max);
-        retval[count].ptr = memalloc_alloc(allocator, retval[count].size);
+        retval[count].ptr = safe_memalloc_alloc(allocator, retval[count].size, 1);
         if (retval[count].ptr)
             ft_memset(retval[count].ptr, 42, retval[count].size);
     }
     return (retval);
 }
 
-void random_test()
+void random_test(t_memalloc *allocator, size_t max_ptr, size_t nbr_ops)
 {
-    t_memalloc *allocator = memalloc_new(1024 * 1024, 1024 * 1024, 1024 * 1024);
-
-    size_t max_ptr = 10000;
-    size_t nbr_ops = 1024 * 1024;
 
     t_sized_ptr *ptrs = malloc(max_ptr * sizeof(t_sized_ptr));
 
@@ -140,7 +136,7 @@ void random_test()
             if (nbr_ptr >= max_ptr)
                 break;
             ptrs[nbr_ptr].size = random_range(128, 1024 * 512);
-            ptrs[nbr_ptr].ptr = memalloc_alloc(allocator, ptrs[nbr_ptr].size);
+            ptrs[nbr_ptr].ptr = safe_memalloc_alloc(allocator, ptrs[nbr_ptr].size, 1);
             if (!ptrs[nbr_ptr].ptr)
                 break;
             ft_memset(ptrs[nbr_ptr].ptr, 42, ((t_memmagic *)ptrs[nbr_ptr].ptr - 1)->size - sizeof(t_memmagic) * 2);
@@ -155,7 +151,7 @@ void random_test()
             for (size_t i = 0; i < to && nbr_ptr < max_ptr; i++)
             {
                 ptrs[nbr_ptr].size = sz;
-                ptrs[nbr_ptr].ptr = memalloc_alloc(allocator, ptrs[nbr_ptr].size);
+                ptrs[nbr_ptr].ptr = safe_memalloc_alloc(allocator, ptrs[nbr_ptr].size, 1);
                 if (!ptrs[nbr_ptr].ptr)
                     continue;
                 ft_memset(ptrs[nbr_ptr].ptr, 42, ((t_memmagic *)ptrs[nbr_ptr].ptr - 1)->size - sizeof(t_memmagic) * 2);
@@ -171,7 +167,7 @@ void random_test()
             for (size_t i = 0; i < to && nbr_ptr < max_ptr; i++)
             {
                 ptrs[nbr_ptr].size = random_range(12, 128);
-                ptrs[nbr_ptr].ptr = memalloc_alloc(allocator, ptrs[nbr_ptr].size);
+                ptrs[nbr_ptr].ptr = safe_memalloc_alloc(allocator, ptrs[nbr_ptr].size, 1);
                 if (!ptrs[nbr_ptr].ptr)
                     continue;
                 ft_memset(ptrs[nbr_ptr].ptr, 42, ((t_memmagic *)ptrs[nbr_ptr].ptr - 1)->size - sizeof(t_memmagic) * 2);
@@ -187,5 +183,7 @@ void random_test()
 int main(int ac, char **av)
 {
     srand(ac > 1 ? atoi(av[1]) : 1);
-    random_test();
+    t_memalloc *allocator = memalloc_new(1024 * 1024, 1024, 1024);
+
+    random_test(allocator, 1024 * 1024 * 1024, 1024 * 1024 * 4);
 }

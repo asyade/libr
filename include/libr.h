@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #define CL_RED "\x1b[31m"
 #define CL_GREEN "\x1b[32m"
@@ -23,6 +24,7 @@
 void ft_shift_array(void *array, size_t size, size_t elem_size, long int (*rnd)());
 void ft_memswap(unsigned char *src, unsigned char *dest, size_t n);
 void *ft_memcpy(void *dest, const void *src, size_t n);
+void *ft_memmove(void *dest, const void *src, size_t n);
 void ft_memset(unsigned char *dest, unsigned char c, size_t n);
 int ft_memcmp(void *a, void *b, size_t n);
 /**
@@ -73,6 +75,8 @@ int mchunk_free(t_memchunk *chunk);
  * Optimised memory allocator for random size allocation
 */
 
+#define E_MAP_UNDEF -15
+#define E_EXPAND_HEAP -14
 #define E_FIND_HEAP -13
 #define E_DEL_HEAP -12
 #define E_INS_EMPTY -11
@@ -80,7 +84,6 @@ int mchunk_free(t_memchunk *chunk);
 #define E_NOMEM -9
 #define E_NOFOUND -8
 #define E_MAGIC -7
-#define E_MAGIC_ENTRY_DIFF -6
 #define E_OVERFLOW -5
 #define E_UNDEF -1
 
@@ -127,7 +130,11 @@ typedef struct s_memalloc
 } t_memalloc;
 /// IMportant todo replace all bheap_insert by bheap insert or expande
 /// Important imporovement can be find element by it's size instead of address in heap
-void memalloc_panic(const char *message);
+int memalloc_seterr(int code);
+int memalloc_geterr();
+
+int entries_cmp(void *aa, void *bb);
+void memalloc_panic(int code);
 size_t find_empty_entry(t_bheap *heap, size_t size);
 
 int check_mem_magic_overflow(t_memalloc *allocator, t_memmagic *magic);
@@ -143,5 +150,17 @@ void memalloc_destroy(t_memalloc *allocator);
 void *memalloc_alloc(t_memalloc *allocator, size_t size);
 int memalloc_try_expande(t_memalloc *allocator, void *addr, size_t new_size);
 int memalloc_free(t_memalloc *allocator, void *addr);
+
+/**
+ * overflay for memory allocator that add thread safety and error handling 
+ * It's also expande the allocator heap if need instead of fail operations
+ */
+
+#define LOCK_USED 1
+#define LOCK_USABLE 0
+#define LOCK_GET 2
+#define LOCK_LIBERATE 3
+
+void *safe_memalloc_alloc(t_memalloc *allocator, size_t size, int retry);
 
 #endif

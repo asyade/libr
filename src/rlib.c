@@ -55,6 +55,27 @@ void *ft_memcpy(void *dest, const void *src, size_t n)
     return (dest);
 }
 
+void *ft_memmove(void *dest, const void *src, size_t n)
+{
+    unsigned char *dptr;
+    unsigned char *sptr;
+
+    dptr = (unsigned char *)dest;
+    sptr = (unsigned char *)src;
+    if (dptr == sptr)
+        return (dptr);
+    if (dptr > sptr)
+    {
+        while (n--)
+        {
+            dptr[n] = sptr[n];
+        }
+    }
+    else
+        ft_memcpy(dest, src, n);
+    return (dest);
+}
+
 int ft_memcmp(void *a, void *b, size_t n)
 {
     unsigned char *pa;
