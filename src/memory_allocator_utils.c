@@ -65,7 +65,7 @@ void memalloc_dump(t_memalloc *allocator)
             size_t index = bheap_find(allocator->usedEntries, &(t_mementry){0, buff}, 0);
             if (index == BH_NOTFOUND)
             {
-                printf("Can't find memory entry, memory arena corupted !\n");
+                printf("Can't find used memory entry, memory arena corupted !\n");
                 return;
             }
             memalloc_dump_area(buff->size, '#', divider);
@@ -76,12 +76,12 @@ void memalloc_dump(t_memalloc *allocator)
             size_t index = bheap_find(allocator->emptyEntries, &(t_mementry){0, buff}, 0);
             if (index == BH_NOTFOUND)
             {
-                printf("OL#JRLK#J$L$_)#($)_#($_)#($_)#($_#)($\n");
+                printf("Can't find empty memory entry, mory arena corupted !\n");
+                return;
             }
             memalloc_dump_area(buff->size, '-', divider);
             empty++;
         }
-        //printf(" %p ", buff);
         if (((size_t)buff - ALLOC_SPTR(allocator)) + (sizeof(t_memmagic) * 3) + buff->size < allocator->buffer_size && buff->size > sizeof(t_memmagic) * 3)
             buff = (t_memmagic *)((size_t)buff + buff->size);
         else
@@ -96,13 +96,26 @@ void memalloc_dump(t_memalloc *allocator)
 
 // Check mem magic at offset and asure it's long of size
 // if recursive == 1 check also right and left entry if it's in allocator range
+
+int check_mem_magic_overflow(t_memalloc *allocator, t_memmagic *magic)
+{
+    if ((size_t)magic + sizeof(t_memmagic) >= ALLOC_SPTR(allocator) + allocator->buffer_size)
+        return (-1);
+    if ((size_t)magic + magic->size > ALLOC_SPTR(allocator) + allocator->buffer_size)
+        return (-2);
+    return (0);
+}
+
 int check_mem_magic(t_memalloc *allocator, size_t offset, size_t size, int recursive)
 {
+    //Todo use check_mem_magic_overflow instead of code duplication
     t_memmagic magics[2];
     if (size == 0 || size + offset > allocator->buffer_size || offset > MAX_ALLOC_SIZE * 128 || size > MAX_ALLOC_SIZE)
         return (-1);
     magics[0] = *(t_memmagic *)(ALLOC_SPTR(allocator) + offset);
     magics[1] = *(t_memmagic *)(ALLOC_SPTR(allocator) + offset + (size - sizeof(t_memmagic)));
+    if (offset % 2)
+        return (-6);
     if (ft_memcmp(magics, magics + 1, sizeof(t_memmagic)) != 0 || magics[0].size != size || !(magics[0].status & (USED | FREE)))
     {
         printf("Magics do not match at %lu %lu (recursive : %s)\n", offset, size, recursive ? "true" : "false");
@@ -120,7 +133,10 @@ int check_mem_magic(t_memalloc *allocator, size_t offset, size_t size, int recur
     {
         magics[0] = *(t_memmagic *)(ALLOC_SPTR(allocator) + offset + size);
         if (check_mem_magic(allocator, offset + size, magics[0].size, 0) != 0)
+        {
+            memalloc_dump(allocator);
             return (-4);
+        }
     }
     return (0);
 }

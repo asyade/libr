@@ -72,13 +72,27 @@ int mchunk_free(t_memchunk *chunk);
 /**
  * Optimised memory allocator for random size allocation
 */
+
+#define E_FIND_HEAP -13
+#define E_DEL_HEAP -12
+#define E_INS_EMPTY -11
+#define E_INS_USED -10
+#define E_NOMEM -9
+#define E_NOFOUND -8
+#define E_MAGIC -7
+#define E_MAGIC_ENTRY_DIFF -6
+#define E_OVERFLOW -5
+#define E_UNDEF -1
+
 #define MAX_ALLOC_SIZE 1024 * 1024 * 5
 #define MIN_ALLOC_SIZE 2
 #define ALIGN 8
+#define ALLOCATOR_MAX(allocator) ((size_t)(((allocator) + sizeof(t_memalloc) + (allocator)->buffer_size)))
 #define SIZE_ALIGN(size) ((((size) / ALIGN) + ((size) % ALIGN ? 1 : 0)) * ALIGN)
 #define SIZE_ALLOC(size) (SIZE_ALIGN((size + sizeof(t_alloc))))
 
-#define ENT_OFF(allocator, entry) (((size_t)(entry)-ALLOC_SPTR(allocator)))
+#define PTR_AS_ENTRY(allocator, ptr) ((t_mementry){0, (void *)((size_t)(ptr))})
+
 #define ALLOC_VPTR(allocator) (((void *)((allocator) + 1)))
 #define ALLOC_SPTR(allocator) (((size_t)((allocator) + 1)))
 
@@ -115,12 +129,19 @@ typedef struct s_memalloc
 /// Important imporovement can be find element by it's size instead of address in heap
 void memalloc_panic(const char *message);
 size_t find_empty_entry(t_bheap *heap, size_t size);
+
+int check_mem_magic_overflow(t_memalloc *allocator, t_memmagic *magic);
 int check_mem_magic(t_memalloc *allocator, size_t offset, size_t size, int recursive);
+
 int fill_mem_magic(t_memalloc *allocator, size_t offset, size_t size, t_alloc_stat status, int check_recursive);
+void memalloc_dump(t_memalloc *allocator);
+void print_heap(t_bheap *heap);
+
 t_memalloc *memalloc_new(size_t buffer_size, size_t emptyHeapSize, size_t usedHeapSize);
 void memalloc_destroy(t_memalloc *allocator);
+
 void *memalloc_alloc(t_memalloc *allocator, size_t size);
-void memalloc_dump(t_memalloc *allocator);
+int memalloc_try_expande(t_memalloc *allocator, void *addr, size_t new_size);
 int memalloc_free(t_memalloc *allocator, void *addr);
-void print_heap(t_bheap *heap);
+
 #endif

@@ -7,6 +7,8 @@ int fill_mem_magic(t_memalloc *allocator, size_t offset, size_t size, t_alloc_st
         printf("Invalide memory arena %lu - %lu for buffer size of %lu\n", offset, offset + size, allocator->buffer_size);
         return (1);
     }
+    if (offset > (size_t)allocator)
+        return (E_OVERFLOW);
 
     *(t_memmagic *)(ALLOC_SPTR(allocator) + offset) = (t_memmagic){status, size};
     *(t_memmagic *)((ALLOC_SPTR(allocator) + offset + size) - sizeof(t_memmagic)) = (t_memmagic){status, size};
@@ -19,14 +21,14 @@ int join_empty_entries(t_memalloc *allocator, size_t final, size_t drained)
     t_mementry *final_entry;
 
     if (final == BH_NOTFOUND || drained == BH_NOTFOUND)
-        return (-1);
+        return (E_FIND_HEAP);
     drained_entry = *(EMPTY_PTR(allocator) + drained);
     final_entry = (EMPTY_PTR(allocator) + final);
     final_entry->size += drained_entry.size;
-    if (fill_mem_magic(allocator, ENT_OFF(allocator, (size_t)final_entry->addr), final_entry->size, FREE, 1) != 0)
-        return (-2);
+    if (fill_mem_magic(allocator, (size_t)final_entry->addr - ALLOC_SPTR(allocator), final_entry->size, FREE, 1) != 0)
+        return (E_MAGIC);
     if (bheap_remove(allocator->emptyEntries, drained) != 0)
-        return (-3);
+        return (E_DEL_HEAP);
     return (0);
 }
 
@@ -40,8 +42,8 @@ int try_join_empty_entry_right(t_memalloc *allocator, size_t index)
     magicptr = (t_memmagic *)((size_t)entry->addr + entry->size);
     if ((size_t)magicptr + sizeof(t_memmagic) > (size_t)allocator + sizeof(t_memalloc) + allocator->buffer_size)
         return (0);
-    if (check_mem_magic(allocator, ENT_OFF(allocator, ((size_t)entry->addr + entry->size)), magicptr->size, 1) != 0)
-        return (-2);
+    if (check_mem_magic(allocator, ((size_t)entry->addr + entry->size) - ALLOC_SPTR(allocator), magicptr->size, 1) != 0)
+        return (E_MAGIC);
     if (magicptr->status == USED)
         return (0);
     return join_empty_entries(allocator, index, bheap_find(allocator->emptyEntries, &(t_mementry){0, magicptr}, 0)) == 0 ? 1 : -4;
@@ -60,7 +62,7 @@ int try_join_empty_entry_left(t_memalloc *allocator, size_t index)
     left_magic = *(t_memmagic *)((size_t)entry->addr - sizeof(t_memmagic));
     if ((left_magic.status != USED && left_magic.status != FREE) ||
         (size_t)entry->addr - left_magic.size > ALLOC_SPTR(allocator) + allocator->buffer_size ||
-        ENT_OFF(allocator, entry->addr) + entry->size > allocator->buffer_size)
+        ((size_t)entry->addr - ALLOC_SPTR(allocator)) + entry->size > allocator->buffer_size)
         return (-1);
     if (left_magic.status == USED || (size_t)entry->addr - left_magic.size == ALLOC_SPTR(allocator) + allocator->buffer_size)
         return (0);
@@ -68,7 +70,11 @@ int try_join_empty_entry_left(t_memalloc *allocator, size_t index)
     if (check_mem_magic(allocator, (size_t)magicptr - ALLOC_SPTR(allocator), left_magic.size, 1) != 0)
         return (-3);
     if ((final = bheap_find(allocator->emptyEntries, &(t_mementry){0, magicptr}, 0)) == BH_NOTFOUND)
+    {
+        printf("Cant find empty elem\n");
+        memalloc_dump(allocator);
         return (-4);
+    }
     return (join_empty_entries(allocator, final, index) == 0 ? 1 : -4);
 }
 
@@ -80,11 +86,11 @@ void *fill_entry_begin(t_memalloc *allocator, t_mementry entry, size_t size)
     if (entry.size > size)
     {
         if ((new_index = bheap_insert(allocator->emptyEntries, &(t_mementry){entry.size - size, (void *)((size_t)entry.addr + size)})) == BH_NOTFOUND ||
-            fill_mem_magic(allocator, (ENT_OFF(allocator, entry.addr)) + size, entry.size - size, FREE, 0) != 0)
+            fill_mem_magic(allocator, ((size_t)entry.addr - ALLOC_SPTR(allocator)) + size, entry.size - size, FREE, 0) != 0)
             return (NULL);
     }
     if ((bheap_insert(allocator->usedEntries, &(t_mementry){size, entry.addr})) == BH_NOTFOUND ||
-        fill_mem_magic(allocator, ENT_OFF(allocator, entry.addr), size, USED, 0) != 0)
+        fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), size, USED, 0) != 0)
         return (NULL);
     return (entry.addr);
 }
@@ -97,8 +103,13 @@ void *fill_entry_middel(t_memalloc *allocator, t_mementry entry, size_t size)
 
     offset = (entry.size / 2) - (size / 2);
     new_size = entry.size - (entry.size - offset);
+    if (offset % 2)
+    {
+        offset++;
+        new_size = entry.size - (entry.size - offset);
+    }
     if ((new_index = bheap_insert(allocator->emptyEntries, &(t_mementry){new_size, entry.addr})) == BH_NOTFOUND ||
-        fill_mem_magic(allocator, ENT_OFF(allocator, entry.addr), new_size, FREE, 0) != 0)
+        fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), new_size, FREE, 0) != 0)
         return (NULL);
     return fill_entry_begin(allocator, (t_mementry){entry.size - new_size, (void *)((size_t)entry.addr + new_size)}, size);
 }
@@ -153,61 +164,82 @@ int memalloc_free(t_memalloc *allocator, void *addr)
         return (0);
     addr = (t_memmagic *)addr - 1;
     if ((index = bheap_find(allocator->usedEntries, &(t_mementry){0, addr}, 0)) == BH_NOTFOUND)
-        return (1);
+        return (bheap_find(allocator->usedEntries, &(t_mementry){0, addr}, 0) == BH_NOTFOUND ? 1 : 2);
     entry = *((t_mementry *)(allocator->usedEntries + 1) + index);
     if (bheap_remove(allocator->usedEntries, index) != 0)
         memalloc_panic("\nCant find entry to delete\n");
     if ((index = bheap_insert(allocator->emptyEntries, &entry)) == BH_NOTFOUND)
         memalloc_panic("\nCan't allocate new entry\n");
-    if (fill_mem_magic(allocator, ENT_OFF(allocator, entry.addr), entry.size, FREE, 1) != 0)
+    if (check_mem_magic(allocator, (size_t)addr - ALLOC_SPTR(allocator), entry.size, 1) != 0)
+    {
+        printf("%p\n", (t_memmagic *)addr + 1);
+        memalloc_panic("\nEntry exist but magic is corupted\n");
+    }
+    if (fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), entry.size, FREE, 1) != 0)
         memalloc_panic("\nCan't fill magic\n");
     if (try_join_empty_entries(allocator, index, addr) != 0)
         memalloc_panic("\nCan't join empty entries\n");
     return (0);
 }
 
-int memalloc_expande(t_memalloc *allocator, size_t index, size_t new_size, t_memmagic right_magic)
+int memalloc_expande_full(t_memalloc *allocator, t_memmagic *self, size_t new_size, size_t indexs[2])
 {
-    t_mementry *entry;
+    size_t joined_size;
 
-    entry = USED_PTR(allocator) + index;
-    if (right_magic.size < (new_size - (entry->size + (sizeof(t_memmagic) * 4) + MIN_ALLOC_SIZE)))
-    {
-        entry->size = entry->size + right_magic.size;
-        return (fill_mem_magic(allocator, ENT_OFF(allocator, entry->addr), entry->size, USED, 1));
-    }
-    entry->size = new_size;
+    joined_size = new_size;
+    if (fill_mem_magic(allocator, (size_t)self - ALLOC_SPTR(allocator), joined_size, USED, 1) != 0)
+        return (-4);
+    (USED_PTR(allocator) + indexs[0])->size = joined_size;
+    if (bheap_remove(allocator->emptyEntries, indexs[1]) != 0)
+        return (-5);
     return (0);
 }
+
+int memalloc_expande_insert(t_memalloc *allocator, t_memmagic *self, t_memmagic *other, size_t indexs[2], size_t size)
+{
+    /*   size_t new_size;
+
+    new_size = other->size - (size - self->size);
+    if (fill_mem_magic(allocator, (size_t)self + size, new_size, FREE, 0) != 0)
+        return (-1);
+    if (bheap_insert(allocator->emptyEntries, &(t_mementry){new_size, (void *)((size_t)self + new_size)}) == BH_NOTFOUND)
+        return (-2);
+
+    return (memalloc_expande_full(allocator, self, other, indexs));
+*/
+    size++;
+    return (memalloc_expande_full(allocator, self, ((size_t)other + other->size) - (size_t)self, indexs));
+}
+
 //Return 0 on success, 1 if no space is avaiable and negative number on critical error
 int memalloc_try_expande(t_memalloc *allocator, void *addr, size_t new_size)
 {
-    size_t index;
-    size_t right_index;
-    t_memmagic *magic;
-    t_memmagic *right_magic;
+    t_memmagic *self;
+    t_memmagic *other;
+    size_t self_index;
+    size_t other_index;
 
-    new_size = SIZE_ALIGN(new_size);
-    if (addr == NULL || (size_t)addr + sizeof(t_memmagic) > ALLOC_SPTR(allocator) + allocator->buffer_size)
+    if (addr == NULL || new_size == 0)
+        return (new_size == 0 ? 0 : 1);
+    new_size += 2 * sizeof(t_memmagic);
+    self = (t_memmagic *)addr - 1;
+    if (check_mem_magic_overflow(allocator, self) != 0)
         return (-1);
-    magic = (t_memmagic *)addr - 1;
-    if ((index = bheap_find(allocator->usedEntries, &(t_mementry){0, magic}, 0)) == BH_NOTFOUND)
-        return (-2);
-    if (check_mem_magic(allocator, (size_t)magic - ALLOC_SPTR(allocator), magic->size, 1) != 0)
-        return (-3);
-    if (magic->size - (sizeof(t_memmagic) * 2) >= new_size)
-        return (0);
-    right_magic = (t_memmagic *)((size_t)magic + magic->size);
-    if ((size_t)right_magic >= ALLOC_SPTR(allocator) + allocator->buffer_size ||
-        right_magic->status == USED ||
-        (magic->size + right_magic->size) - sizeof(t_memmagic) * 2 < new_size)
+    other = (t_memmagic *)((size_t)self + self->size);
+    if (check_mem_magic_overflow(allocator, other) != 0)
         return (1);
-    if ((right_index = bheap_find(allocator->emptyEntries, &(t_mementry){0, right_magic}, 0)) == BH_NOTFOUND)
-        return (-4);
-    if (check_mem_magic(allocator, (size_t)right_magic - ALLOC_SPTR(allocator), (EMPTY_PTR(allocator) + right_index)->size, 1) != 0)
-        return (-3);
-    if (bheap_remove(allocator->emptyEntries, right_index) != 0)
-        return (-5);
-    //Now we have the entry we want expande and the magic of the entry we gonna drain for expand we also know that the new entry will be bigger or equals than new_size
-    return (memalloc_expande(allocator, index, new_size, *right_magic));
+    if (check_mem_magic(allocator, (size_t)self - ALLOC_SPTR(allocator), self->size, 1) != 0 ||
+        check_mem_magic(allocator, (size_t)other - ALLOC_SPTR(allocator), other->size, 1) != 0)
+        return (-6);
+    if ((self_index = bheap_find(allocator->usedEntries, &PTR_AS_ENTRY(allocator, self), 0)) == BH_NOTFOUND ||
+        (other_index = bheap_find(allocator->emptyEntries, &PTR_AS_ENTRY(allocator, other), 0)) == BH_NOTFOUND)
+        return (1); //Extra security can be disabel for performance
+    if (self->size >= new_size)
+        return (0);
+    if (self->size + other->size < new_size)
+        return (1);
+    if (self->size + other->size > new_size * 2)
+        return (memalloc_expande_insert(allocator, self, other, (size_t[]){self_index, other_index}, new_size));
+    else
+        return (memalloc_expande_full(allocator, self, ((size_t)other + other->size) - (size_t)self, (size_t[]){self_index, other_index}));
 }
