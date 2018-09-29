@@ -183,7 +183,7 @@ int memalloc_free(t_memalloc *allocator, void *addr)
         return (0);
     addr = (t_memmagic *)addr - 1;
     if ((index = bheap_find(allocator->usedEntries, &(t_mementry){0, addr}, 0)) == BH_NOTFOUND)
-        return (bheap_find(allocator->usedEntries, &(t_mementry){0, addr}, 0) == BH_NOTFOUND ? 1 : E_FIND_HEAP);
+        return (bheap_find(allocator->emptyEntries, &(t_mementry){0, addr}, 0) == BH_NOTFOUND ? 1 : E_FIND_HEAP);
     entry = *((t_mementry *)(allocator->usedEntries + 1) + index);
     if (bheap_remove(allocator->usedEntries, index) != 0)
         return (E_DEL_HEAP);

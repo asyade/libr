@@ -28,7 +28,6 @@ t_memalloc *memalloc_new(size_t buffer_size, size_t emptyHeapSize, size_t usedHe
     usedHeapSize = chunk->size / 2;
     alloc->emptyEntries = bheap_new(chunk + 1, emptyHeapSize, sizeof(t_mementry), entries_cmp);
     alloc->usedEntries = bheap_new((void *)((size_t)alloc->emptyEntries + emptyHeapSize), usedHeapSize, sizeof(t_mementry), entries_cmp);
-
     bheap_insert(alloc->emptyEntries, &(t_mementry){alloc->buffer_size, alloc + 1});
     fill_mem_magic(alloc, 0, alloc->buffer_size, FREE, 1);
     return (alloc);

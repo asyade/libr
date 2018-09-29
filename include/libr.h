@@ -86,6 +86,7 @@ int mchunk_free(t_memchunk *chunk);
 #define E_MAGIC -7
 #define E_OVERFLOW -5
 #define E_UNDEF -1
+#define E_DOUBLEFREE -16
 
 #define MAX_ALLOC_SIZE 1024 * 1024 * 5
 #define MIN_ALLOC_SIZE 2
@@ -162,5 +163,7 @@ int memalloc_free(t_memalloc *allocator, void *addr);
 #define LOCK_LIBERATE 3
 
 void *safe_memalloc_alloc(t_memalloc *allocator, size_t size, int retry);
+int safe_memalloc_free(t_memalloc *allocator, void *ptr);
+int safe_memalloc_expande(t_memalloc *allocator, void *ptr, size_t new_size);
 
 #endif

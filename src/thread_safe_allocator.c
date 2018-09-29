@@ -91,9 +91,15 @@ void *safe_memalloc_alloc(t_memalloc *allocator, size_t size, int retry)
         {
             memalloc_seterr(0);
             if (!retry)
+            {
+                lock(LOCK_LIBERATE);
                 return (NULL);
+            }
             if (try_expande_allocator_heap(allocator) >= 0)
+            {
+                lock(LOCK_LIBERATE);
                 return (safe_memalloc_alloc(allocator, size, 0));
+            }
             else
                 memalloc_panic(E_EXPAND_HEAP);
         }
@@ -102,4 +108,29 @@ void *safe_memalloc_alloc(t_memalloc *allocator, size_t size, int retry)
     }
     lock(LOCK_LIBERATE);
     return (ptr);
+}
+
+int safe_memalloc_free(t_memalloc *allocator, void *ptr)
+{
+    int result;
+    lock(LOCK_GET);
+    if ((result = memalloc_free(allocator, ptr)) < 0)
+    {
+        if (result == E_FIND_HEAP)
+            return (1); //For safety we can throw a panic instead of returning error
+        memalloc_panic(result);
+    }
+    lock(LOCK_LIBERATE);
+    return (result);
+}
+
+int safe_memalloc_expande(t_memalloc *allocator, void *ptr, size_t new_size)
+{
+    int result;
+
+    lock(LOCK_GET);
+    if ((result = memalloc_try_expande(allocator, ptr, new_size)) < 0)
+        memalloc_panic(result);
+    lock(LOCK_LIBERATE);
+    return (result);
 }

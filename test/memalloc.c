@@ -46,7 +46,7 @@ void random_test(t_memalloc *allocator, size_t max_ptr, size_t nbr_ops)
                 }
                 nbr_ptr--;
                 int freeres;
-                if ((freeres = memalloc_free(allocator, ptrs[nbr_ptr].ptr)) != 0)
+                if ((freeres = safe_memalloc_free(allocator, ptrs[nbr_ptr].ptr)) != 0)
                 {
                     printf(CL_CYAN "EMPTY ENTRIES\n" CL_RESET);
                     print_heap(allocator->emptyEntries);
@@ -62,7 +62,7 @@ void random_test(t_memalloc *allocator, size_t max_ptr, size_t nbr_ops)
         case 5:
         {
             void *addr = ptrs[nbr_ptr - 1].ptr + random_range(1, 128);
-            if (memalloc_free(allocator, addr) == 0)
+            if (safe_memalloc_free(allocator, addr) == 0)
             {
                 for (size_t i = 0; i < nbr_ptr; i++)
                 {
@@ -94,7 +94,7 @@ void random_test(t_memalloc *allocator, size_t max_ptr, size_t nbr_ops)
             for (size_t i = 0; i < to && nbr_ptr > 0; i++)
             {
                 nbr_ptr--;
-                if (memalloc_free(allocator, ptrs[nbr_ptr].ptr) != 0)
+                if (safe_memalloc_free(allocator, ptrs[nbr_ptr].ptr) != 0)
                     printf(CL_RED "Invalide freed range %p\n" CL_RESET, ptrs[nbr_ptr].ptr);
                 printf(CL_YELLOW "FREE_RANGE(%p)\n" CL_RESET, ptrs[nbr_ptr].ptr);
             }
@@ -115,7 +115,7 @@ void random_test(t_memalloc *allocator, size_t max_ptr, size_t nbr_ops)
             // }
             size_t new_size = ptrs[0].size * random_range(0, 4);
             size_t old_size = ptrs[0].size;
-            if ((fail_reason = memalloc_try_expande(allocator, ptrs[0].ptr, new_size)) == 0)
+            if ((fail_reason = safe_memalloc_expande(allocator, ptrs[0].ptr, new_size)) == 0)
             {
                 ptrs[0].size = new_size;
                 size_t real_size = ((t_memmagic *)ptrs[0].ptr - 1)->size - (sizeof(t_memmagic) * 2);
@@ -185,5 +185,5 @@ int main(int ac, char **av)
     srand(ac > 1 ? atoi(av[1]) : 1);
     t_memalloc *allocator = memalloc_new(1024 * 1024, 1024, 1024);
 
-    random_test(allocator, 1024 * 1024 * 1024, 1024 * 1024 * 4);
+    random_test(allocator, 1024 * 1024 * 1024, 10000000);
 }
