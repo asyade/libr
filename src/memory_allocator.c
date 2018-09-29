@@ -63,17 +63,17 @@ int try_join_empty_entry_left(t_memalloc *allocator, size_t index)
     if ((left_magic.status != USED && left_magic.status != FREE) ||
         (size_t)entry->addr - left_magic.size > ALLOC_SPTR(allocator) + allocator->buffer_size ||
         ((size_t)entry->addr - ALLOC_SPTR(allocator)) + entry->size > allocator->buffer_size)
-        return (-1);
+        return (E_OVERFLOW);
     if (left_magic.status == USED || (size_t)entry->addr - left_magic.size == ALLOC_SPTR(allocator) + allocator->buffer_size)
         return (0);
     magicptr = (t_memmagic *)((size_t)entry->addr - left_magic.size);
     if (check_mem_magic(allocator, (size_t)magicptr - ALLOC_SPTR(allocator), left_magic.size, 1) != 0)
-        return (-3);
+        return (E_MAGIC);
     if ((final = bheap_find(allocator->emptyEntries, &(t_mementry){0, magicptr}, 0)) == BH_NOTFOUND)
     {
         printf("Cant find empty elem\n");
         memalloc_dump(allocator);
-        return (-4);
+        return (E_FIND_HEAP);
     }
     return (join_empty_entries(allocator, final, index) == 0 ? 1 : -4);
 }
@@ -149,36 +149,35 @@ int try_join_empty_entries(t_memalloc *allocator, size_t index, void *addr)
     join_result = try_join_empty_entry_right(allocator, index);
     // Find new index of the entry into the heap if is joined to the right cell
     if (join_result > 0 && (index = bheap_find(allocator->emptyEntries, &(t_mementry){0, addr}, 0)) == BH_NOTFOUND)
-        return (-2);
+        return (E_FIND_HEAP);
     else if (join_result < 0)
-        return (-1);
-    return (try_join_empty_entry_left(allocator, index) >= 0 ? 0 : -3);
+        return (join_result);
+    join_result = try_join_empty_entry_left(allocator, index);
+    return (join_result >= 0 ? 0 : join_result);
 }
 
 int memalloc_free(t_memalloc *allocator, void *addr)
 {
     size_t index;
     t_mementry entry;
+    int val;
 
     if (addr == NULL)
         return (0);
     addr = (t_memmagic *)addr - 1;
     if ((index = bheap_find(allocator->usedEntries, &(t_mementry){0, addr}, 0)) == BH_NOTFOUND)
-        return (bheap_find(allocator->usedEntries, &(t_mementry){0, addr}, 0) == BH_NOTFOUND ? 1 : 2);
+        return (bheap_find(allocator->usedEntries, &(t_mementry){0, addr}, 0) == BH_NOTFOUND ? 1 : E_FIND_HEAP);
     entry = *((t_mementry *)(allocator->usedEntries + 1) + index);
     if (bheap_remove(allocator->usedEntries, index) != 0)
-        memalloc_panic("\nCant find entry to delete\n");
+        return (E_DEL_HEAP);
     if ((index = bheap_insert(allocator->emptyEntries, &entry)) == BH_NOTFOUND)
-        memalloc_panic("\nCan't allocate new entry\n");
+        return (E_INS_EMPTY);
     if (check_mem_magic(allocator, (size_t)addr - ALLOC_SPTR(allocator), entry.size, 1) != 0)
-    {
-        printf("%p\n", (t_memmagic *)addr + 1);
-        memalloc_panic("\nEntry exist but magic is corupted\n");
-    }
+        return (E_MAGIC);
     if (fill_mem_magic(allocator, (size_t)entry.addr - ALLOC_SPTR(allocator), entry.size, FREE, 1) != 0)
-        memalloc_panic("\nCan't fill magic\n");
-    if (try_join_empty_entries(allocator, index, addr) != 0)
-        memalloc_panic("\nCan't join empty entries\n");
+        return (E_MAGIC);
+    if ((val = try_join_empty_entries(allocator, index, addr)) != 0)
+        return (val);
     return (0);
 }
 
@@ -188,10 +187,10 @@ int memalloc_expande_full(t_memalloc *allocator, t_memmagic *self, size_t new_si
 
     joined_size = new_size;
     if (fill_mem_magic(allocator, (size_t)self - ALLOC_SPTR(allocator), joined_size, USED, 1) != 0)
-        return (-4);
+        return (E_MAGIC);
     (USED_PTR(allocator) + indexs[0])->size = joined_size;
     if (bheap_remove(allocator->emptyEntries, indexs[1]) != 0)
-        return (-5);
+        return (E_DEL_HEAP);
     return (0);
 }
 
@@ -224,13 +223,13 @@ int memalloc_try_expande(t_memalloc *allocator, void *addr, size_t new_size)
     new_size += 2 * sizeof(t_memmagic);
     self = (t_memmagic *)addr - 1;
     if (check_mem_magic_overflow(allocator, self) != 0)
-        return (-1);
+        return (E_OVERFLOW);
     other = (t_memmagic *)((size_t)self + self->size);
     if (check_mem_magic_overflow(allocator, other) != 0)
         return (1);
     if (check_mem_magic(allocator, (size_t)self - ALLOC_SPTR(allocator), self->size, 1) != 0 ||
         check_mem_magic(allocator, (size_t)other - ALLOC_SPTR(allocator), other->size, 1) != 0)
-        return (-6);
+        return (E_MAGIC);
     if ((self_index = bheap_find(allocator->usedEntries, &PTR_AS_ENTRY(allocator, self), 0)) == BH_NOTFOUND ||
         (other_index = bheap_find(allocator->emptyEntries, &PTR_AS_ENTRY(allocator, other), 0)) == BH_NOTFOUND)
         return (1); //Extra security can be disabel for performance
