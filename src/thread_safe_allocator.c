@@ -2,7 +2,7 @@
 
 void lock_panic()
 {
-    printf("Can't take lock, exit !");
+    ft_putfmt("Can't take lock, exit !\n");
     exit(1);
 }
 
@@ -57,7 +57,6 @@ int try_expande_allocator_heap(t_memalloc *allocator)
     size_t replace = allocator->emptyEntries->buffer_size + allocator->usedEntries->buffer_size + (2 * sizeof(t_bheap));
 
     replace *= 2;
-    printf("%lu\n", replace);
     if ((new = mchunk_alloc(replace)) == NULL)
         return (1);
     replace = new->size;

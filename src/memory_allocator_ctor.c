@@ -10,22 +10,25 @@ int entries_cmp(void *aa, void *bb)
     return (a->addr < b->addr ? -1 : 1);
 }
 
-t_memalloc *memalloc_new(size_t buffer_size, size_t emptyHeapSize, size_t usedHeapSize)
+t_memalloc *memalloc_new(size_t buffer_size, size_t heap_size, t_szrange range)
 {
     t_memalloc *alloc;
     t_memchunk *chunk;
+    size_t emptyHeapSize;
+    size_t usedHeapSize;
 
     if ((chunk = mchunk_alloc(buffer_size)) == NULL)
         return (NULL);
     alloc = (t_memalloc *)(chunk + 1);
     alloc->buffer_size = chunk->size - sizeof(t_memalloc);
-    if ((chunk = mchunk_alloc(emptyHeapSize + usedHeapSize)) == NULL)
+    if ((chunk = mchunk_alloc(heap_size)) == NULL)
     {
         mchunk_free((t_memchunk *)(alloc - 1) - 1);
         return (NULL);
     }
     emptyHeapSize = chunk->size / 2;
     usedHeapSize = chunk->size / 2;
+    alloc->range = range;
     alloc->emptyEntries = bheap_new(chunk + 1, emptyHeapSize, sizeof(t_mementry), entries_cmp);
     alloc->usedEntries = bheap_new((void *)((size_t)alloc->emptyEntries + emptyHeapSize), usedHeapSize, sizeof(t_mementry), entries_cmp);
     bheap_insert(alloc->emptyEntries, &(t_mementry){alloc->buffer_size, alloc + 1});
@@ -41,6 +44,6 @@ void memalloc_destroy(t_memalloc *allocator)
         mchunk_free((t_memchunk *)((size_t)allocator->usedEntries - sizeof(t_memchunk))) != 0 ||
         mchunk_free((t_memchunk *)((size_t)allocator - sizeof(t_memchunk))) != 0)
     {
-        printf("Can't unmap allocator, memory criticaly corupted have to exit");
+        ft_putfmt("Can't unmap allocator, memory criticaly corupted have to exit");
     }
 }

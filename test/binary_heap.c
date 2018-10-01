@@ -24,13 +24,13 @@ void print_heap(t_bheap *heap)
         size_t z = 0;
         while (z < x && z + i < heap->size)
         {
-            printf("%d ", ptr[z++ + i]);
+            ft_putfmt("%d ", ptr[z++ + i]);
         }
         i += x;
         x *= 2;
-        printf("\n");
+        ft_putfmt("\n");
     }
-    printf("\n");
+    ft_putfmt("\n");
 }
 
 int main(int ac, char **av)
@@ -60,7 +60,7 @@ int main(int ac, char **av)
         size_t val = bheap_find(heap, (void *)&i, 0);
         if (val == BH_NOTFOUND)
         {
-            printf("Error in find, value %d not found", i);
+            ft_putfmt("Error in find, value %d not found", i);
             return (1);
         }
     }
@@ -79,7 +79,7 @@ int main(int ac, char **av)
     }
     if (heap->size != 0)
     {
-        printf("Error heap is not empty !");
+        ft_putfmt("Error heap is not empty !");
         return (1);
     }
     memalloc_destroy(allocator);

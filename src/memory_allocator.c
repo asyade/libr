@@ -4,7 +4,7 @@ int fill_mem_magic(t_memalloc *allocator, size_t offset, size_t size, t_alloc_st
 {
     if (allocator->buffer_size < offset + size)
     {
-        printf("Invalide memory arena %lu - %lu for buffer size of %lu\n", offset, offset + size, allocator->buffer_size);
+        ft_putfmt("Invalide memory arena %u - %u for buffer size of %u\n", offset, offset + size, allocator->buffer_size);
         return (1);
     }
     if (offset > (size_t)allocator)
@@ -71,7 +71,7 @@ int try_join_empty_entry_left(t_memalloc *allocator, size_t index)
         return (E_MAGIC);
     if ((final = bheap_find(allocator->emptyEntries, &(t_mementry){0, magicptr}, 0)) == BH_NOTFOUND)
     {
-        printf("Cant find empty elem\n");
+        ft_putfmt("Cant find empty elem\n");
         memalloc_dump(allocator);
         return (E_FIND_HEAP);
     }

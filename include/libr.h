@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdarg.h>
+#include <stdint.h>
 
 #define CL_RED "\x1b[31m"
 #define CL_GREEN "\x1b[32m"
@@ -21,6 +23,14 @@
 /**
  * 	Basic functions
  */
+size_t ft_strlen(char *str);
+void ft_putstr(char *str);
+void ft_putstr_ft(char *str, int fd);
+void ft_putendl(char *str);
+void ft_putendl_fd(char *str, int fd);
+void ft_putull_fd(uintmax_t nbr, int fd);
+void ft_putfmt(char *fmt, ...);
+
 void ft_shift_array(void *array, size_t size, size_t elem_size, long int (*rnd)());
 void ft_memswap(unsigned char *src, unsigned char *dest, size_t n);
 void *ft_memcpy(void *dest, const void *src, size_t n);
@@ -123,8 +133,15 @@ typedef struct s_mementry
 	void *addr;
 } t_mementry;
 
+typedef struct s_szrange
+{
+	size_t min;
+	size_t max;
+} t_szrange;
+
 typedef struct s_memalloc
 {
+	t_szrange range;
 	t_bheap *emptyEntries;
 	t_bheap *usedEntries;
 	size_t buffer_size;
@@ -145,7 +162,7 @@ int fill_mem_magic(t_memalloc *allocator, size_t offset, size_t size, t_alloc_st
 void memalloc_dump(t_memalloc *allocator);
 void print_heap(t_bheap *heap);
 
-t_memalloc *memalloc_new(size_t buffer_size, size_t emptyHeapSize, size_t usedHeapSize);
+t_memalloc *memalloc_new(size_t buffer_size, size_t heap_size, t_szrange range);
 void memalloc_destroy(t_memalloc *allocator);
 
 void *memalloc_alloc(t_memalloc *allocator, size_t size);
@@ -165,5 +182,13 @@ int memalloc_free(t_memalloc *allocator, void *addr);
 void *safe_memalloc_alloc(t_memalloc *allocator, size_t size, int retry);
 int safe_memalloc_free(t_memalloc *allocator, void *ptr);
 int safe_memalloc_expande(t_memalloc *allocator, void *ptr, size_t new_size);
+
+/*
+manage differts memory allocator (using safe overlay)
+*/
+
+void *mmemalloc_alloc(size_t size);
+void mmemalloc_free(void *ptr);
+int mmemalloc_expande(void *ptr, size_t new_size);
 
 #endif

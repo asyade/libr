@@ -21,6 +21,6 @@ int memalloc_seterr(int code)
 
 void memalloc_panic(int code)
 {
-    printf("Memory arena corupted exit, (error: %d)", code);
+    ft_putfmt("Memory arena corupted exit, (error: %d)", code);
     exit(1);
 }
