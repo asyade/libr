@@ -138,7 +138,7 @@ static void ft_putnbrbase_fd_inner(uintmax_t nbr, char *base, size_t baselen,
         ft_putnbrbase_fd_inner(nbr % baselen, base, baselen, fd);
     }
     else
-        ft_putchar_fd(base[nbr], fd);
+        ft_putchar_buff_fd(base[nbr], fd);
 }
 
 void ft_putnbrbase_fd(uintmax_t nbr, char *base, int fd)
@@ -160,7 +160,7 @@ void ft_putull_fd(uintmax_t nbr, int fd)
 {
     if (nbr > 9)
         ft_putull_fd(nbr / 10, fd);
-    ft_putchar_fd((nbr % 10) + '0', fd);
+    ft_putchar_buff_fd((nbr % 10) + '0', fd);
 }
 
 void ft_putnbr_fd(int n, int fd)
@@ -168,11 +168,11 @@ void ft_putnbr_fd(int n, int fd)
     unsigned int nb;
 
     if (n < 0)
-        ft_putchar_fd('-', fd);
+        ft_putchar_buff_fd('-', fd);
     nb = ((n > 0) ? n : -n);
     if (nb >= 10)
         ft_putnbr_fd(nb / 10, fd);
-    ft_putchar_fd((nb % 10) + '0', fd);
+    ft_putchar_buff_fd((nb % 10) + '0', fd);
 }
 
 int ft_strncmp(const char *a, const char *b, size_t n)
@@ -190,6 +190,20 @@ int ft_strncmp(const char *a, const char *b, size_t n)
         ptrb++;
     }
     return (n == 0) ? 0 : ((unsigned char)*ptra - (unsigned char)*ptrb);
+}
+
+#define PUTFMT_BUFFER_SIZE 1024 * 16
+void ft_putchar_buff_fd(char c, int fd)
+{
+    static size_t index = 0;
+    static char buffer[PUTFMT_BUFFER_SIZE] = {0};
+
+    buffer[index++] = c;
+    if (c == '\n' || index == PUTFMT_BUFFER_SIZE - 1)
+    {
+        write(fd, buffer, index);
+        index = 0;
+    }
 }
 
 #define FMT_BUFFER_SIZE 4096
@@ -222,7 +236,7 @@ void ft_putfmt(char *fmt, ...)
             else
                 ft_putchar_fd(fmt[i], 1);
         }
-        ft_putchar_fd(fmt[i], 1);
+        ft_putchar_buff_fd(fmt[i], 1);
         i++;
     }
 }

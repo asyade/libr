@@ -7,8 +7,8 @@ int memallocator_cmpf(void *aa, void *bb)
     size_t a;
     size_t b;
 
-    a = (size_t)aa;
-    b = (size_t)bb;
+    a = (size_t)(*(void **)aa);
+    b = (size_t)(*(void **)bb);
     if (a == b)
         return (0);
     return (a < b) ? -1 : 1;
@@ -23,7 +23,7 @@ t_bheap *mmemalloc_heap()
     {
         if ((chunk = mchunk_alloc(ALLOCATORS_HEAP_SIZE)) == NULL)
             memalloc_panic(E_NOMEM);
-        heap = bheap_new(chunk + 1, chunk->size, sizeof(t_memalloc), memallocator_cmpf);
+        heap = bheap_new(chunk + 1, chunk->size, sizeof(void *), memallocator_cmpf);
     }
     return (heap);
 }
@@ -53,7 +53,7 @@ t_memalloc *memalloc_new_range(size_t range)
     if (range < 128)
         return (memalloc_new(1024 * 1024, 4096, (t_szrange){0, 128}));
     if (range < 1024)
-        return (memalloc_new(1024 * 1024 * 8, 4096, (t_szrange){0, 1024}));
+        return (memalloc_new(1024 * 1024 * 8, 4096, (t_szrange){128, 1024}));
     return (memalloc_new(range, 1024, (t_szrange){-1, -1}));
 }
 
@@ -63,15 +63,17 @@ void *insert_and_alloc(size_t range)
 
     if ((allocator = memalloc_new_range(range)) == NULL)
         return (NULL);
-    if (bheap_insert(mmemalloc_heap(), allocator) == BH_NOTFOUND)
+    if (bheap_insert(mmemalloc_heap(), &allocator) == BH_NOTFOUND)
         memalloc_panic(E_NOMEM); //todo better error handling
-    return (memalloc_alloc(allocator, range));
+    return (safe_memalloc_alloc(allocator, range, 0));
 }
 
 void *mmemalloc_alloc(size_t size)
 {
     void *ptr;
 
+    if (size > MAX_ALLOC_SIZE)
+        return (NULL);
     if ((ptr = find_and_alloc(size, 0)) != NULL)
         return (ptr);
     return (insert_and_alloc(size));
@@ -85,8 +87,12 @@ t_memalloc *find_allocator_by_addr(void *ptr, size_t index)
     heap = mmemalloc_heap();
     if (index >= heap->size)
         return (NULL);
-    allocator = (t_memalloc *)(heap + 1) + index;
+    allocator = *((t_memalloc **)(heap + 1) + index);
     if ((size_t)allocator < (size_t)ptr && (size_t)ptr < (size_t)(allocator + 1) + allocator->buffer_size)
+        return (allocator);
+    if ((allocator = find_allocator_by_addr(ptr, BH_LEFT(index))) != NULL)
+        return (allocator);
+    if ((allocator = find_allocator_by_addr(ptr, BH_RIGHT(index))) != NULL)
         return (allocator);
     return (NULL);
 }
@@ -101,6 +107,13 @@ void mmemalloc_free(void *ptr)
         memalloc_panic(E_OVERFLOW);
 }
 
-//int mmemalloc_expande(void *ptr, size_t new_size)
-//{
-//}
+int mmemalloc_expande(void *ptr, size_t new_size)
+{
+    t_memalloc *allocator;
+
+    if (new_size > MAX_ALLOC_SIZE)
+        return (1);
+    if ((allocator = find_allocator_by_addr(ptr, 0)) == NULL)
+        memalloc_panic(E_OVERFLOW);
+    return memalloc_try_expande(allocator, ptr, new_size);
+}

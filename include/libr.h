@@ -23,6 +23,7 @@
 /**
  * 	Basic functions
  */
+void ft_putchar_buff_fd(char c, int fd);
 size_t ft_strlen(char *str);
 void ft_putstr(char *str);
 void ft_putstr_ft(char *str, int fd);
@@ -98,7 +99,7 @@ int mchunk_free(t_memchunk *chunk);
 #define E_UNDEF -1
 #define E_DOUBLEFREE -16
 
-#define MAX_ALLOC_SIZE 1024 * 1024 * 5
+#define MAX_ALLOC_SIZE 1024 * 1024 * 18
 #define MIN_ALLOC_SIZE 2
 #define ALIGN 8
 #define ALLOCATOR_MAX(allocator) ((size_t)(((allocator) + sizeof(t_memalloc) + (allocator)->buffer_size)))

@@ -110,7 +110,7 @@ int check_mem_magic(t_memalloc *allocator, size_t offset, size_t size, int recur
 {
     //Todo use check_mem_magic_overflow instead of code duplication
     t_memmagic magics[2];
-    if (size == 0 || size + offset > allocator->buffer_size || offset > MAX_ALLOC_SIZE * 128 || size > MAX_ALLOC_SIZE)
+    if (size == 0 || size + offset > allocator->buffer_size || offset > MAX_ALLOC_SIZE || size > MAX_ALLOC_SIZE)
         return (-1);
     magics[0] = *(t_memmagic *)(ALLOC_SPTR(allocator) + offset);
     magics[1] = *(t_memmagic *)(ALLOC_SPTR(allocator) + offset + (size - sizeof(t_memmagic)));
