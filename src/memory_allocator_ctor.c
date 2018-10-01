@@ -41,7 +41,6 @@ void memalloc_destroy(t_memalloc *allocator)
     if (!allocator)
         return;
     if (mchunk_free((t_memchunk *)((size_t)allocator->emptyEntries - sizeof(t_memchunk))) != 0 ||
-        mchunk_free((t_memchunk *)((size_t)allocator->usedEntries - sizeof(t_memchunk))) != 0 ||
         mchunk_free((t_memchunk *)((size_t)allocator - sizeof(t_memchunk))) != 0)
     {
         ft_putfmt("Can't unmap allocator, memory criticaly corupted have to exit");

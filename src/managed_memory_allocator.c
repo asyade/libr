@@ -1,6 +1,22 @@
 #include "libr.h"
 
-#define ALLOCATORS_HEAP_SIZE 4096 //Need some test this is a random value
+#define ALLOCATORS_HEAP_SIZE 1024 * 256 * sizeof(void *) //Need some test this is a random value
+
+int small_page_count(int delta)
+{
+    static int nbr = 0;
+
+    nbr += delta;
+    return (nbr);
+}
+
+int big_page_count(int delta)
+{
+    static int nbr = 0;
+
+    nbr += delta;
+    return (nbr);
+}
 
 int memallocator_cmpf(void *aa, void *bb)
 {
@@ -48,12 +64,24 @@ void *find_and_alloc(size_t size, size_t index)
     return (NULL);
 }
 
+#define SMALL_MIN 0
+#define SMALL_MAX 128
+
+#define BIG_MIN 128
+#define BIG_MAX 1024
+
 t_memalloc *memalloc_new_range(size_t range)
 {
     if (range < 128)
-        return (memalloc_new(1024 * 1024, 4096, (t_szrange){0, 128}));
+    {
+        small_page_count(1);
+        return (memalloc_new(1024 * 1024, 4096, (t_szrange){SMALL_MIN, SMALL_MAX}));
+    }
     if (range < 1024)
-        return (memalloc_new(1024 * 1024 * 8, 4096, (t_szrange){128, 1024}));
+    {
+        big_page_count(1);
+        return (memalloc_new(1024 * 1024 * 8, 4096, (t_szrange){BIG_MIN, BIG_MAX}));
+    }
     return (memalloc_new(range, 1024, (t_szrange){-1, -1}));
 }
 
@@ -61,6 +89,8 @@ void *insert_and_alloc(size_t range)
 {
     t_memalloc *allocator;
 
+    if (mmemalloc_heap()->size >= MAX_ALLOC_PAGES)
+        return (NULL);
     if ((allocator = memalloc_new_range(range)) == NULL)
         return (NULL);
     if (bheap_insert(mmemalloc_heap(), &allocator) == BH_NOTFOUND)
@@ -100,11 +130,34 @@ t_memalloc *find_allocator_by_addr(void *ptr, size_t index)
 void mmemalloc_free(void *ptr)
 {
     t_memalloc *allocator;
+    t_bheap *heap;
 
+    heap = mmemalloc_heap();
     if ((allocator = find_allocator_by_addr(ptr, 0)) == NULL)
         memalloc_panic(E_OVERFLOW); //TODO better error handling
-    if (memalloc_free(allocator, ptr) < 0)
+    if (allocator->range.min == (size_t)-1)
+    {
+        if (bheap_remove(heap, bheap_find(heap, &allocator, 0)) != 0) //Optime posible we search index 2 time
+            memalloc_panic(E_UNDEF);
+        memalloc_destroy(allocator);
+    }
+    else if (memalloc_free(allocator, ptr) < 0)
         memalloc_panic(E_OVERFLOW);
+    else if (allocator->usedEntries->size == 0)
+    {
+        if ((allocator->range.min == SMALL_MIN && small_page_count(0) > 1))
+        {
+            bheap_remove(heap, bheap_find(heap, &allocator, 0));
+            memalloc_destroy(allocator);
+            small_page_count(-1);
+        }
+        else if (allocator->range.min == BIG_MIN && big_page_count(0) > 1)
+        {
+            bheap_remove(heap, bheap_find(heap, &allocator, 0));
+            memalloc_destroy(allocator);
+            big_page_count(-1);
+        }
+    }
 }
 
 int mmemalloc_expande(void *ptr, size_t new_size)

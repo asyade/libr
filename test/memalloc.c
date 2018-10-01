@@ -38,7 +38,7 @@ void random_test(size_t max_ptr, size_t nbr_ops)
             break;
         case 4:
         {
-            size_t to = random_range(2, 20);
+            size_t to = random_range(2, 1000);
             if (random() % 2 && random() % 2)
             {
                 ft_putfmt(CL_GREEN "SHIFTING PTRS\n" CL_RESET);
@@ -54,9 +54,6 @@ void random_test(size_t max_ptr, size_t nbr_ops)
         }
         break;
         ///Realloc
-        case 6:
-        case 7:
-        case 8:
         case 5:
             if (nbr_ptr <= 0)
                 break;

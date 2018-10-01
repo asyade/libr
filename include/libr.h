@@ -180,6 +180,8 @@ int memalloc_free(t_memalloc *allocator, void *addr);
 #define LOCK_GET 2
 #define LOCK_LIBERATE 3
 
+#define MAX_ALLOC_PAGES 1024 * 128
+
 void *safe_memalloc_alloc(t_memalloc *allocator, size_t size, int retry);
 int safe_memalloc_free(t_memalloc *allocator, void *ptr);
 int safe_memalloc_expande(t_memalloc *allocator, void *ptr, size_t new_size);
