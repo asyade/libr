@@ -19,8 +19,9 @@ int memalloc_seterr(int code)
     return (errcode(code, 1));
 }
 
+#include <signal.h>
 void memalloc_panic(int code)
 {
     ft_putfmt("Memory arena corupted exit, (error: %d)", code);
-    exit(1);
+    raise(5);
 }

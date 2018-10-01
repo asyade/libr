@@ -4,7 +4,7 @@ CC=gcc
 NAME=libr
 OBJ=$(SRC:.c=.o)
 INCLUDES=-I ./include 
-FLAGS= -Wno-unused-result -Wall -Werror -Wextra -g3
+FLAGS= -Wno-unused-result -Wall -Werror -Wextra -g3 -fPIC
 
 TEST_BHEAP=test/binary_heap.c
 TES_BHEAP_BIN=bin/test_bheap
