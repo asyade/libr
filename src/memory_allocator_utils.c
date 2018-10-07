@@ -6,7 +6,7 @@
 /*   By: acorbeau <acorbeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/07 16:24:31 by acorbeau          #+#    #+#             */
-/*   Updated: 2018/10/07 16:28:20 by acorbeau         ###   ########.fr       */
+/*   Updated: 2018/10/07 16:33:48 by acorbeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,19 +38,19 @@ int				check_mem_magic(t_memalloc *a, size_t o, size_t size, int r)
 {
 	t_memmagic	magics[2];
 
-	if (size == 0 || size + o > a->buffer_size || o > MAX_ALLOC_SIZE || size > MAX_ALLOC_SIZE)
+	if (size == 0 || size + o > a->buffer_size ||
+			o > MAX_ALLOC_SIZE || size > MAX_ALLOC_SIZE)
 		return (-1);
 	magics[0] = *(t_memmagic *)(ALLOC_SPTR(a) + o);
-	magics[1] = *(t_memmagic *)(ALLOC_SPTR(a) + o + (size - sizeof(t_memmagic)));
-	if (o % 2)
-		return (-6);
-	if (ft_memcmp(magics, magics + 1, sizeof(t_memmagic)) != 0 || magics[0].size != size || !(magics[0].status & (USED | FREE)))
+	magics[1] = *(t_memmagic *)(ALLOC_SPTR(a) + o + (size - STMM));
+	if (o % 2 || (ft_memcmp(magics, magics + 1, STMM) != 0 ||
+			magics[0].size != size || !(magics[0].status & (USED | FREE))))
 		return (-2);
 	if (!r)
 		return (0);
 	if (o > 0)
 	{
-		magics[0] = *(t_memmagic *)(ALLOC_SPTR(a) + (o - sizeof(t_memmagic)));
+		magics[0] = *(t_memmagic *)(ALLOC_SPTR(a) + (o - STMM));
 		if (check_mem_magic(a, o - magics[0].size, magics[0].size, 0) != 0)
 			return (-3);
 	}
@@ -58,10 +58,7 @@ int				check_mem_magic(t_memalloc *a, size_t o, size_t size, int r)
 	{
 		magics[0] = *(t_memmagic *)(ALLOC_SPTR(a) + o + size);
 		if (check_mem_magic(a, o + size, magics[0].size, 0) != 0)
-		{
-			memalloc_dump(a);
 			return (-4);
-		}
 	}
 	return (0);
 }
@@ -80,7 +77,7 @@ size_t			find_empty_entry(t_bheap *heap, size_t size)
 		if (entries[i].size >= size * 3)
 		{
 			choice = i;
-			break;
+			break ;
 		}
 		else if (entries[i].size >= size)
 			choice = i;

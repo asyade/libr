@@ -6,7 +6,7 @@
 /*   By: acorbeau <acorbeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/01 17:34:09 by acorbeau          #+#    #+#             */
-/*   Updated: 2018/10/07 14:28:46 by acorbeau         ###   ########.fr       */
+/*   Updated: 2018/10/07 16:35:06 by acorbeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,11 +91,7 @@ int				try_join_empty_entry_left(t_memalloc *a, size_t index)
 	if (check_mem_magic(a, (size_t)magicptr - ALLOC_SPTR(a), lm.size, 1) != 0)
 		return (E_MAGIC);
 	if ((final = bheap_find(a->empty_entries, &(t_mementry){0, magicptr}, 0)) == BH_NOTFOUND)
-	{
-		ft_putfmt("Cant find empty elem\n");
-		memalloc_dump(a);
 		return (E_FIND_HEAP);
-	}
 	return (join_empty_entries(a, final, index) == 0 ? 1 : -4);
 }
 
@@ -157,8 +153,7 @@ void			*fill_entry_middel(t_memalloc *allocator, t_mementry entry, size_t size)
 }
 
 void			*memalloc_alloc(t_memalloc *allocator, size_t size)
-{ //Todo place rwlock here for thread safe
-	//Important todo asume that the memmagic use space in size
+{
 	size_t		index;
 	t_mementry	entry;
 	void		*ret;
@@ -183,9 +178,7 @@ int				try_join_empty_entries(t_memalloc *allocator, size_t index, void *addr)
 {
 	int join_result;
 
-	// Try to join with right cell, if it's success index of curent entry may change
 	join_result = try_join_empty_entry_right(allocator, index);
-	// Find new index of the entry into the heap if is joined to the right cell
 	if (join_result > 0 && (index = bheap_find(allocator->empty_entries, &(t_mementry){0, addr}, 0)) == BH_NOTFOUND)
 		return (E_FIND_HEAP);
 	else if (join_result < 0)
@@ -243,7 +236,7 @@ int				memalloc_expande_insert(t_memalloc *allocator, t_memmagic *self, t_memmag
 		return (-2);
 
 	return (memalloc_expande_full(allocator, self, other, indexs));
-*/
+	*/
 	size++;
 	return (memalloc_expande_full(allocator, self, ((size_t)other + other->size) - (size_t)self, indexs));
 }
