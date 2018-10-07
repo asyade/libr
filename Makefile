@@ -1,5 +1,5 @@
 #!AUTO GENERATED!
-SRC=./src/binary_heap.c ./src/rlib.c ./src/memory_chunk.c ./src/memory_allocator.c ./src/memory_allocator_ctor.c ./src/memory_allocator_utils.c ./src/memalloc_errno.c ./src/thread_safe_allocator.c ./src/memalloc_errno.c ./src/thread_safe_allocator.c ./src/managed_memory_allocator.c
+SRC= ./src/binary_heap.c ./src/binary_heap_fn2.c ./src/rlib_fn_mem.c ./src/rlib_fn_str.c ./src/rlib_fn_str2.c ./src/rlib_fn_str3.c ./src/rlib.c ./src/memory_chunk.c ./src/memory_allocator.c ./src/memory_allocator_fn2.c ./src/memory_allocator_fn3.c ./src/memory_allocator_ctor.c ./src/memory_allocator_utils.c ./src/memalloc_errno.c ./src/thread_safe_allocator.c ./src/memalloc_errno.c ./src/thread_safe_allocator.c ./src/managed_memory_allocator.c ./src/managed_memory_allocator_fn2.c ./src/managed_memory_allocator_fn3.c
 CC=gcc
 NAME=libr
 OBJ=$(SRC:.c=.o)
