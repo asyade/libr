@@ -6,7 +6,7 @@
 /*   By: acorbeau <acorbeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/01 15:45:18 by acorbeau          #+#    #+#             */
-/*   Updated: 2018/10/07 18:35:40 by acorbeau         ###   ########.fr       */
+/*   Updated: 2018/10/07 19:16:20 by acorbeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,11 @@ void			ft_memset(unsigned char *dest, unsigned char c, size_t n);
 int				ft_memcmp(void *a, void *b, size_t n);
 
 # define BH_NOTFOUND ((size_t)-1)
+# define BHN ((size_t)-1)
+# define SV size_t[]
+# define MXE memalloc_expande_insert
+# define TMA t_memalloc
+# define TMM t_memmagic
 # define BH_PARENT(index) ((((index)-1) / 2))
 # define BH_LEFT(index) (((2 * (index)) + 1))
 # define BH_RIGHT(index) (((2 * (index)) + 2))
@@ -125,6 +130,7 @@ int				mchunk_free(t_memchunk *chunk);
 # define ALLOC_SPTR(allocator) (((size_t)((allocator) + 1)))
 # define EMPTY_PTR(allocator) (((t_mementry *)((allocator)->empty_entries + 1)))
 # define USED_PTR(allocator) (((t_mementry *)((allocator)->used_entries + 1)))
+# define CMMM check_mem_magic
 
 typedef enum	e_alloc_stat
 {
