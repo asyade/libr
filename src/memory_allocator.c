@@ -6,7 +6,7 @@
 /*   By: acorbeau <acorbeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/01 17:34:09 by acorbeau          #+#    #+#             */
-/*   Updated: 2018/10/07 16:51:01 by acorbeau         ###   ########.fr       */
+/*   Updated: 2018/10/07 16:56:06 by acorbeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -205,22 +205,23 @@ int				memalloc_free(t_memalloc *a, void *addr)
 		return (E_INS_EMPTY);
 	if (check_mem_magic(a, (size_t)addr - ALLOC_SPTR(a), entry.size, 1) != 0)
 		return (E_MAGIC);
-	if (fill_mem_magic(a, (size_t)entry.addr - ALLOC_SPTR(a), entry.size, FREE, 1) != 0)
+	if (fill_mem_magic(a, (size_t)entry.addr -
+			ALLOC_SPTR(a), entry.size, FREE, 1) != 0)
 		return (E_MAGIC);
 	if ((val = try_join_empty_entries(a, index, addr)) != 0)
 		return (val);
 	return (0);
 }
 
-int				memalloc_expande_full(t_memalloc *allocator, t_memmagic *self, size_t new_size, size_t indexs[2])
+int				memalloc_expande_full(t_memalloc *a,t_memmagic *s, size_t ns, size_t i[2])
 {
 	size_t		joined_size;
 
-	joined_size = new_size;
-	if (fill_mem_magic(allocator, (size_t)self - ALLOC_SPTR(allocator), joined_size, USED, 1) != 0)
+	joined_size = ns;
+	if (fill_mem_magic(a, (size_t)s - ALLOC_SPTR(a), joined_size, USED, 1) != 0)
 		return (E_MAGIC);
-	(USED_PTR(allocator) + indexs[0])->size = joined_size;
-	if (bheap_remove(allocator->empty_entries, indexs[1]) != 0)
+	(USED_PTR(a) + i[0])->size = joined_size;
+	if (bheap_remove(a->empty_entries, i[1]) != 0)
 		return (E_DEL_HEAP);
 	return (0);
 }
